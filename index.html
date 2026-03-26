@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🍺 Bier Counter</title>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getDatabase, ref, set, get, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    // ============================================================
+    // 🔧 HIER DEINE FIREBASE CONFIG EINTRAGEN
+    // ============================================================
+    const firebaseConfig = {
+      apiKey:            "DEIN_API_KEY",
+      authDomain:        "DEIN_PROJECT.firebaseapp.com",
+      databaseURL:       "https://DEIN_PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId:         "DEIN_PROJECT",
+      storageBucket:     "DEIN_PROJECT.appspot.com",
+      messagingSenderId: "DEINE_SENDER_ID",
+      appId:             "DEINE_APP_ID"
+    };
+    // ============================================================
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
+
+    window._db     = db;
+    window._ref    = ref;
+    window._set    = set;
+    window._get    = get;
+    window._onValue = onValue;
+    window._update = update;
+    window._dbReady = true;
+    document.dispatchEvent(new Event("db-ready"));
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── RESET & BASE ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --amber:   #F5A623;
+      --foam:    #FFF4D6;
+      --dark:    #1A1008;
+      --mid:     #3D2B0F;
+      --gold:    #D4870A;
+      --green:   #2ECC71;
+      --red:     #E74C3C;
+      --glass-w: 120px;
+      --glass-h: 180px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--dark);
+      color: var(--foam);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      display: flex;
+      gap: 0;
+      background: var(--mid);
+      border-bottom: 2px solid var(--gold);
+    }
+    nav button {
+      flex: 1;
+      padding: 14px;
+      background: none;
+      border: none;
+      color: #999;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: color .2s, background .2s;
+    }
+    nav button.active {
+      color: var(--amber);
+      background: rgba(245,166,35,.1);
+      border-bottom: 3px solid var(--amber);
+    }
+
+    /* ── VIEWS ── */
+    .view { display: none; padding: 24px 16px; }
+    .view.active { display: block; }
+
+    /* ── SETUP VIEW ── */
+    #setup-view {
+      max-width: 400px;
+      margin: 40px auto;
+      text-align: center;
+    }
+    #setup-view h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 3rem;
+      color: var(--amber);
+      letter-spacing: 4px;
+    }
+    #setup-view p { color: #aaa; margin: 8px 0 24px; }
+    .input-group { display: flex; gap: 8px; margin-bottom: 12px; }
+    .input-group input {
+      flex: 1;
+      padding: 12px 16px;
+      background: var(--mid);
+      border: 2px solid #555;
+      border-radius: 8px;
+      color: var(--foam);
+      font-size: 1rem;
+      font-family: 'DM Sans', sans-serif;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .input-group input:focus { border-color: var(--amber); }
+    .btn {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1rem;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: transform .1s, filter .2s;
+    }
+    .btn:active { transform: scale(.96); }
+    .btn-primary { background: var(--amber); color: var(--dark); }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .btn-danger { background: var(--red); color: #fff; }
+
+    .session-list { text-align: left; margin-top: 20px; }
+    .session-list h3 { font-family: 'Bebas Neue',sans-serif; color: var(--gold); letter-spacing: 2px; margin-bottom: 8px; }
+    .session-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: var(--mid);
+      border-radius: 8px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: border-color .2s;
+    }
+    .session-item:hover { border-color: var(--amber); }
+    .session-item span { font-weight: 700; }
+
+    /* ── COUNTER VIEW ── */
+    #counter-view { max-width: 380px; margin: 0 auto; text-align: center; }
+
+    .counter-header { margin-bottom: 32px; }
+    .counter-header h2 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      color: #aaa;
+      letter-spacing: 3px;
+    }
+    .counter-header .username {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.8rem;
+      color: var(--amber);
+      letter-spacing: 4px;
+      line-height: 1;
+    }
+
+    /* beer glass SVG counter */
+    .glass-wrap {
+      position: relative;
+      width: var(--glass-w);
+      height: var(--glass-h);
+      margin: 0 auto 24px;
+    }
+    .glass-wrap svg { width: 100%; height: 100%; overflow: visible; }
+
+    .big-count {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 5rem;
+      color: var(--foam);
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .count-label { color: #777; font-size: .85rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 32px; }
+
+    .plus-btn {
+      width: 100%;
+      max-width: 280px;
+      padding: 22px;
+      border: none;
+      border-radius: 16px;
+      background: var(--amber);
+      color: var(--dark);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.5rem;
+      letter-spacing: 4px;
+      cursor: pointer;
+      transition: transform .1s, filter .2s, box-shadow .2s;
+      box-shadow: 0 6px 30px rgba(245,166,35,.4);
+    }
+    .plus-btn:hover { filter: brightness(1.1); box-shadow: 0 8px 40px rgba(245,166,35,.6); }
+    .plus-btn:active { transform: scale(.94); }
+
+    .ripple-container { position: relative; display: inline-block; }
+
+    .minus-btn {
+      margin-top: 12px;
+      padding: 10px 28px;
+      background: none;
+      border: 1px solid #555;
+      border-radius: 8px;
+      color: #777;
+      font-family: 'DM Sans', sans-serif;
+      font-size: .85rem;
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+    }
+    .minus-btn:hover { border-color: var(--red); color: var(--red); }
+
+    /* ── DASHBOARD VIEW ── */
+    #dashboard-view { max-width: 900px; margin: 0 auto; }
+
+    .dash-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .dash-header h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.5rem;
+      color: var(--amber);
+      letter-spacing: 4px;
+    }
+
+    .total-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--mid);
+      border: 2px solid var(--amber);
+      border-radius: 12px;
+      padding: 12px 20px;
+    }
+    .total-badge .total-num {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.8rem;
+      color: var(--amber);
+      line-height: 1;
+    }
+    .total-badge .total-lbl {
+      font-size: .75rem;
+      letter-spacing: 2px;
+      color: #aaa;
+      text-transform: uppercase;
+    }
+
+    .players-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+    }
+
+    .player-card {
+      background: var(--mid);
+      border-radius: 16px;
+      padding: 20px 16px;
+      text-align: center;
+      border: 1px solid #3a2510;
+      transition: border-color .2s, transform .2s;
+      position: relative;
+    }
+    .player-card:hover { border-color: var(--amber); transform: translateY(-2px); }
+
+    .player-card .p-name {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: 2px;
+      color: var(--foam);
+      margin-bottom: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mini-glass {
+      margin: 0 auto 12px;
+      width: 60px;
+      height: 90px;
+    }
+    .mini-glass svg { width: 100%; height: 100%; overflow: visible; }
+
+    .p-count {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.2rem;
+      color: var(--amber);
+      line-height: 1;
+    }
+    .p-count-lbl { font-size: .7rem; color: #777; letter-spacing: 1px; text-transform: uppercase; }
+
+    /* ── LEADER CROWN ── */
+    .leader-badge {
+      position: absolute;
+      top: -10px;
+      right: -6px;
+      font-size: 1.2rem;
+    }
+
+    /* ── TOTAL GLASS ANIM ── */
+    @keyframes foam-wave {
+      0%,100% { d: path("M0,0 Q15,-6 30,0 Q45,6 60,0 L60,8 L0,8 Z"); }
+      50%      { d: path("M0,0 Q15,6 30,0 Q45,-6 60,0 L60,8 L0,8 Z"); }
+    }
+
+    /* ── STATUS DOT ── */
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .status-dot.online  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .status-dot.offline { background: var(--red); }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--amber);
+      color: var(--dark);
+      padding: 10px 24px;
+      border-radius: 50px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 2px;
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+      z-index: 999;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── EMPTY STATE ── */
+    .empty { text-align: center; color: #555; padding: 60px 20px; font-size: .95rem; }
+    .empty big { display: block; font-size: 3rem; margin-bottom: 12px; }
+
+    /* ── CONFIG NOTICE ── */
+    #config-banner {
+      background: #5a1a00;
+      border: 1px solid var(--red);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+      font-size: .85rem;
+      color: #ffa;
+      display: none;
+    }
+    #config-banner code { background: rgba(255,255,255,.1); padding: 2px 6px; border-radius: 4px; font-size: .8rem; }
+  </style>
+</head>
+<body>
+
+<div id="config-banner">
+  ⚠️ Firebase noch nicht konfiguriert! Öffne <code>index.html</code> und trage deine Firebase-Config ein (Zeile ~20).
+  <a href="https://console.firebase.google.com" target="_blank" style="color:var(--amber)">→ Firebase Console</a>
+</div>
+
+<nav>
+  <button class="active" onclick="switchTab('setup')">⚙ Setup</button>
+  <button onclick="switchTab('counter')">🍺 Zähler</button>
+  <button onclick="switchTab('dashboard')">📊 Dashboard</button>
+</nav>
+
+<!-- SETUP -->
+<div id="setup-view" class="view active">
+  <h1>🍺 BIER<br>COUNTER</h1>
+  <p>Erstelle eine Session & trag dich ein</p>
+
+  <div style="margin-bottom:24px">
+    <label style="display:block;text-align:left;font-size:.8rem;color:#aaa;margin-bottom:6px;letter-spacing:1px">SESSION-NAME</label>
+    <div class="input-group">
+      <input id="session-input" type="text" placeholder="z.B. Grillabend 2025" maxlength="30" />
+      <button class="btn btn-primary" onclick="createSession()">START</button>
+    </div>
+  </div>
+
+  <div>
+    <label style="display:block;text-align:left;font-size:.8rem;color:#aaa;margin-bottom:6px;letter-spacing:1px">DEIN NAME</label>
+    <div class="input-group">
+      <input id="name-input" type="text" placeholder="z.B. Markus" maxlength="20" />
+      <button class="btn btn-primary" onclick="joinSession()">BEITRETEN</button>
+    </div>
+    <p style="font-size:.75rem;color:#666;text-align:left;margin-top:4px">Session-ID teilen, damit andere beitreten können</p>
+  </div>
+
+  <div class="session-list" id="session-list" style="display:none">
+    <h3>Aktive Session</h3>
+    <div id="session-items"></div>
+  </div>
+
+  <div id="join-code-box" style="display:none;margin-top:24px;padding:16px;background:var(--mid);border-radius:8px;border:1px dashed var(--gold)">
+    <div style="font-size:.75rem;color:#aaa;letter-spacing:1px;margin-bottom:4px">SESSION-ID (teilen!)</div>
+    <div id="join-code" style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--amber);letter-spacing:4px"></div>
+    <button class="btn btn-primary" style="margin-top:10px;width:100%;font-size:.85rem" onclick="copyCode()">ID KOPIEREN</button>
+  </div>
+</div>
+
+<!-- COUNTER -->
+<div id="counter-view" class="view">
+  <div class="counter-header">
+    <div class="count-label">SESSION: <span id="c-session-name" style="color:var(--amber)">–</span></div>
+    <div class="username" id="c-username">–</div>
+  </div>
+
+  <div class="glass-wrap" id="my-glass-wrap">
+    <!-- filled by JS -->
+  </div>
+
+  <div class="big-count" id="my-count">0</div>
+  <div class="count-label">Biere getrunken</div>
+
+  <div class="ripple-container">
+    <button class="plus-btn" onclick="addBeer()" id="plus-btn">+ BIER</button>
+  </div>
+  <br>
+  <button class="minus-btn" onclick="removeBeer()">– eins zurück</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard-view" class="view">
+  <div class="dash-header">
+    <h1>🍺 ÜBERSICHT</h1>
+    <div class="total-badge">
+      <div>
+        <div class="total-num" id="total-count">0</div>
+        <div class="total-lbl">Biere Gesamt</div>
+      </div>
+      <svg width="40" height="60" viewBox="0 0 40 60">
+        <defs>
+          <clipPath id="dash-clip">
+            <rect x="4" y="5" width="32" height="50" rx="3"/>
+          </clipPath>
+        </defs>
+        <rect x="4" y="5" width="32" height="50" rx="3" fill="none" stroke="#F5A623" stroke-width="2"/>
+        <rect id="dash-fill" x="4" y="40" width="32" height="15" fill="#F5A623" opacity=".8" clip-path="url(#dash-clip)"/>
+        <rect x="10" y="0" width="6" height="8" fill="#F5A623" rx="1"/>
+        <rect x="24" y="0" width="6" height="8" fill="#F5A623" rx="1"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="players-grid" id="players-grid">
+    <div class="empty"><big>🍺</big>Noch niemand in der Session.<br>Leg los!</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────
+let currentSession = null;
+let currentUser    = null;
+let dbListeners    = [];
+
+// ─────────────────────────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(tab + '-view').classList.add('active');
+  document.querySelectorAll('nav button')[['setup','counter','dashboard'].indexOf(tab)].classList.add('active');
+
+  if (tab === 'dashboard' && currentSession) loadDashboard();
+  if (tab === 'counter'   && currentSession && currentUser) loadCounter();
+}
+
+// ─────────────────────────────────────────────────────────────
+// FIREBASE HELPERS
+// ─────────────────────────────────────────────────────────────
+function checkConfig() {
+  if (!window._dbReady) return false;
+  // Check if placeholder values
+  const isDemo = document.querySelector('script[type="module"]').textContent.includes('"DEIN_API_KEY"');
+  if (isDemo) {
+    document.getElementById('config-banner').style.display = 'block';
+    return false;
+  }
+  return true;
+}
+
+// ─────────────────────────────────────────────────────────────
+// SESSION MANAGEMENT
+// ─────────────────────────────────────────────────────────────
+function genId() {
+  return Math.random().toString(36).substr(2, 6).toUpperCase();
+}
+
+async function createSession() {
+  if (!checkConfig()) { showToast('Firebase konfigurieren!'); return; }
+  const name = document.getElementById('session-input').value.trim();
+  if (!name) { showToast('Session-Name eingeben!'); return; }
+
+  const id = genId();
+  const db = window._db;
+  await window._set(window._ref(db, `sessions/${id}`), {
+    name, createdAt: Date.now(), players: {}
+  });
+
+  currentSession = { id, name };
+  localStorage.setItem('bier_session', JSON.stringify(currentSession));
+  showSessionBox(id, name);
+  loadSetupList();
+  showToast('Session erstellt: ' + id);
+}
+
+async function joinSession() {
+  if (!checkConfig()) { showToast('Firebase konfigurieren!'); return; }
+  const username   = document.getElementById('name-input').value.trim();
+  const sessionRaw = document.getElementById('session-input').value.trim().toUpperCase();
+  if (!username)   { showToast('Namen eingeben!'); return; }
+  if (!sessionRaw) { showToast('Session-ID oder -Name eingeben!'); return; }
+
+  // Try as ID first
+  const db  = window._db;
+  const snap = await window._get(window._ref(db, `sessions/${sessionRaw}`));
+  if (!snap.exists()) { showToast('Session nicht gefunden!'); return; }
+
+  const sessionData = snap.val();
+  currentSession = { id: sessionRaw, name: sessionData.name };
+  currentUser    = username;
+
+  localStorage.setItem('bier_session', JSON.stringify(currentSession));
+  localStorage.setItem('bier_user', username);
+
+  // Register player
+  await window._set(window._ref(db, `sessions/${sessionRaw}/players/${username}`), {
+    count: (sessionData.players?.[username]?.count) || 0,
+    joinedAt: Date.now()
+  });
+
+  showSessionBox(sessionRaw, sessionData.name);
+  showToast(`Willkommen, ${username}!`);
+  switchTab('counter');
+}
+
+function showSessionBox(id, name) {
+  document.getElementById('join-code-box').style.display = 'block';
+  document.getElementById('join-code').textContent = id + '  |  ' + name;
+  loadSetupList();
+}
+
+function copyCode() {
+  const code = document.getElementById('join-code').textContent.split('|')[0].trim();
+  navigator.clipboard.writeText(code).then(() => showToast('ID kopiert!'));
+}
+
+async function loadSetupList() {
+  if (!currentSession) return;
+  const db   = window._db;
+  const snap = await window._get(window._ref(db, `sessions/${currentSession.id}/players`));
+  const players = snap.val() || {};
+  const keys    = Object.keys(players);
+
+  const list = document.getElementById('session-list');
+  const items = document.getElementById('session-items');
+  list.style.display = keys.length ? 'block' : 'none';
+
+  items.innerHTML = keys.map(k => `
+    <div class="session-item" onclick="selectUser('${k}')">
+      <span>${k}</span>
+      <span style="color:var(--amber)">${players[k].count} 🍺</span>
+    </div>
+  `).join('');
+}
+
+function selectUser(name) {
+  currentUser = name;
+  localStorage.setItem('bier_user', name);
+  showToast('Eingeloggt als ' + name);
+  switchTab('counter');
+}
+
+// ─────────────────────────────────────────────────────────────
+// COUNTER
+// ─────────────────────────────────────────────────────────────
+function loadCounter() {
+  document.getElementById('c-session-name').textContent = currentSession.name;
+  document.getElementById('c-username').textContent     = currentUser.toUpperCase();
+
+  const db = window._db;
+  const playerRef = window._ref(db, `sessions/${currentSession.id}/players/${currentUser}`);
+
+  // Real-time listener
+  const unsub = window._onValue(playerRef, snap => {
+    const data  = snap.val() || { count: 0 };
+    const count = data.count || 0;
+    document.getElementById('my-count').textContent = count;
+    renderGlass('my-glass-wrap', count, 140, 200, true);
+  });
+  dbListeners.push(unsub);
+}
+
+async function addBeer() {
+  if (!currentSession || !currentUser) { showToast('Kein User ausgewählt!'); return; }
+  const db  = window._db;
+  const playerRef = window._ref(db, `sessions/${currentSession.id}/players/${currentUser}`);
+  const snap = await window._get(playerRef);
+  const cur  = (snap.val()?.count) || 0;
+  await window._set(playerRef, { count: cur + 1, joinedAt: snap.val()?.joinedAt || Date.now() });
+  animatePlusBtn();
+  showToast('🍺 Prost!');
+}
+
+async function removeBeer() {
+  if (!currentSession || !currentUser) return;
+  const db  = window._db;
+  const playerRef = window._ref(db, `sessions/${currentSession.id}/players/${currentUser}`);
+  const snap = await window._get(playerRef);
+  const cur  = (snap.val()?.count) || 0;
+  if (cur <= 0) { showToast('Bereits bei 0!'); return; }
+  await window._set(playerRef, { count: cur - 1, joinedAt: snap.val()?.joinedAt || Date.now() });
+}
+
+function animatePlusBtn() {
+  const btn = document.getElementById('plus-btn');
+  btn.style.transform = 'scale(.93)';
+  setTimeout(() => btn.style.transform = '', 150);
+}
+
+// ─────────────────────────────────────────────────────────────
+// DASHBOARD
+// ─────────────────────────────────────────────────────────────
+function loadDashboard() {
+  if (!currentSession) { showToast('Zuerst Session wählen!'); switchTab('setup'); return; }
+
+  const db  = window._db;
+  const sessRef = window._ref(db, `sessions/${currentSession.id}/players`);
+
+  const unsub = window._onValue(sessRef, snap => {
+    const players = snap.val() || {};
+    renderDashboard(players);
+  });
+  dbListeners.push(unsub);
+}
+
+function renderDashboard(players) {
+  const keys   = Object.keys(players);
+  const grid   = document.getElementById('players-grid');
+  const totalEl = document.getElementById('total-count');
+
+  if (!keys.length) {
+    grid.innerHTML = '<div class="empty"><big>🍺</big>Noch niemand in der Session.<br>Leg los!</div>';
+    totalEl.textContent = '0';
+    return;
+  }
+
+  const counts  = keys.map(k => ({ name: k, count: players[k].count || 0 }));
+  counts.sort((a, b) => b.count - a.count);
+  const total   = counts.reduce((s, p) => s + p.count, 0);
+  const maxCount = counts[0].count || 1;
+
+  totalEl.textContent = total;
+
+  // Update dashboard glass fill
+  const fillEl = document.getElementById('dash-fill');
+  const pct    = Math.min(total / Math.max(maxCount * keys.length, 1), 1);
+  const fillH  = Math.round(pct * 50);
+  fillEl.setAttribute('y',      55 - fillH);
+  fillEl.setAttribute('height', fillH);
+
+  grid.innerHTML = counts.map((p, i) => `
+    <div class="player-card">
+      ${i === 0 && p.count > 0 ? '<div class="leader-badge">👑</div>' : ''}
+      <div class="p-name">${p.name}</div>
+      <div class="mini-glass" id="dash-glass-${p.name.replace(/\s/g,'-')}">
+        ${beerGlassSVG(p.count, 60, 90, false)}
+      </div>
+      <div class="p-count">${p.count}</div>
+      <div class="p-count-lbl">Biere</div>
+    </div>
+  `).join('');
+}
+
+// ─────────────────────────────────────────────────────────────
+// BEER GLASS SVG
+// ─────────────────────────────────────────────────────────────
+function beerGlassSVG(count, w, h, animated) {
+  const MAX_DISPLAY = 20;
+  const pct   = Math.min(count / MAX_DISPLAY, 1);
+  const beerH = pct * (h * .75);
+  const beerY = h * .12 + (h * .75 - beerH);
+
+  // Foam height
+  const foamH = count > 0 ? Math.max(8, beerH * .12) : 0;
+  const foamY = beerY - foamH * .3;
+
+  const glassTop    = w * .18;
+  const glassBottom = w * .06;
+  const topY  = h * .08;
+  const botY  = h * .92;
+
+  // trapezoid points
+  const tl = glassTop, tr = w - glassTop;
+  const bl = glassBottom, br = w - glassBottom;
+
+  const clipId = 'clip-' + Math.random().toString(36).substr(2,5);
+
+  // Color based on count
+  const hue  = Math.max(0, 38 - count * 1.5);
+  const beer = `hsl(${hue}, 90%, ${Math.max(30, 55 - count)}%)`;
+
+  return `
+  <svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <clipPath id="${clipId}">
+        <polygon points="${tl},${topY} ${tr},${topY} ${br},${botY} ${bl},${botY}"/>
+      </clipPath>
+    </defs>
+    <!-- beer fill -->
+    <rect x="0" y="${beerY}" width="${w}" height="${beerH + 10}"
+          fill="${beer}" opacity=".9"
+          clip-path="url(#${clipId})">
+      ${animated && count > 0 ? `<animate attributeName="y" values="${beerY};${beerY-2};${beerY}" dur="2s" repeatCount="indefinite"/>` : ''}
+    </rect>
+    <!-- foam -->
+    ${count > 0 ? `
+    <ellipse cx="${w/2}" cy="${foamY}" rx="${(tr-tl)/2 * (.5 + pct*.5)}" ry="${foamH}"
+             fill="#FFF9EC" opacity=".92" clip-path="url(#${clipId})"/>
+    ` : ''}
+    <!-- glass outline -->
+    <polygon points="${tl},${topY} ${tr},${topY} ${br},${botY} ${bl},${botY}"
+             fill="none" stroke="#F5A623" stroke-width="${count > 0 ? 2 : 1.5}"
+             opacity="${count > 0 ? 1 : .4}"/>
+    <!-- handle -->
+    <path d="M${tr},${topY + (botY-topY)*.25} Q${w*1.18},${topY+(botY-topY)*.25} ${w*1.18},${topY+(botY-topY)*.5} Q${w*1.18},${topY+(botY-topY)*.75} ${tr},${topY+(botY-topY)*.75}"
+          fill="none" stroke="#F5A623" stroke-width="2" opacity="${count > 0 ? 1 : .35}"/>
+    <!-- shine -->
+    ${count > 0 ? `
+    <line x1="${tl + 4}" y1="${topY + 4}" x2="${bl + 4}" y2="${botY - 4}"
+          stroke="white" stroke-width="1.5" opacity=".15" stroke-linecap="round"/>
+    ` : ''}
+    <!-- empty label -->
+    ${count === 0 ? `
+    <text x="${w/2}" y="${h/2 + 4}" text-anchor="middle" fill="#555" font-size="${w*.18}" font-family="DM Sans,sans-serif">leer</text>
+    ` : ''}
+  </svg>`;
+}
+
+function renderGlass(containerId, count, w, h, animated) {
+  document.getElementById(containerId).innerHTML = beerGlassSVG(count, w, h, animated);
+}
+
+// ─────────────────────────────────────────────────────────────
+// TOAST
+// ─────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ─────────────────────────────────────────────────────────────
+// INIT — restore from localStorage
+// ─────────────────────────────────────────────────────────────
+document.addEventListener('db-ready', () => {
+  const savedSession = localStorage.getItem('bier_session');
+  const savedUser    = localStorage.getItem('bier_user');
+  if (savedSession) {
+    currentSession = JSON.parse(savedSession);
+    document.getElementById('session-input').value = currentSession.id;
+    showSessionBox(currentSession.id, currentSession.name);
+  }
+  if (savedUser) {
+    currentUser = savedUser;
+    document.getElementById('name-input').value = savedUser;
+  }
+  if (currentSession && currentUser) {
+    switchTab('counter');
+  }
+});
+
+// Initial glass render
+renderGlass('my-glass-wrap', 0, 140, 200, true);
+</script>
+</body>
+</html>
