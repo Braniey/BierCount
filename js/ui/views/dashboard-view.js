@@ -1,6 +1,6 @@
 import { $, esc, formatAgo, formatClock, formatTimer, formatDuration, formatNumber } from '../dom.js';
 import { createGlass } from '../glass.js';
-import { EVENT, PAUSE } from '../../core/constants.js';
+import { EVENT, PAUSE, BEERS_PER_CRATE } from '../../core/constants.js';
 
 const cards = new Map(); // name -> { el, glass }
 let wakeLock = null;
@@ -46,8 +46,8 @@ export function renderDashboardView(state, stats) {
     $('#total-liters').textContent = `${formatNumber(t.liters, 1)} l`;
     $('#total-cigs').textContent = t.cigs;
     $('#crate-label').textContent = t.crates
-        ? `${t.crates} ${t.crates === 1 ? 'Kasten' : 'Kästen'} + ${t.beers % 20}/20`
-        : `${t.beers}/20 bis zum ersten Kasten`;
+        ? `${t.crates} ${t.crates === 1 ? 'Fässchen' : 'Fässchen'} + ${t.beers % BEERS_PER_CRATE} /${BEERS_PER_CRATE}`
+        : `${t.beers}/${BEERS_PER_CRATE} bis zum Fässchen`;
     $('#crate-bar').style.setProperty('--pct', t.crateProgress);
 
     renderAway(stats);
