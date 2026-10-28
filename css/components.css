@@ -1,0 +1,214 @@
+/* ── Buttons ────────────────────────────────────────────── */
+.btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: var(--radius-s);
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: transform .1s, filter .2s, background .2s, color .2s;
+    white-space: nowrap;
+}
+.btn:active { transform: scale(.96); }
+.btn-primary { background: var(--amber); color: var(--dark); }
+.btn-primary:hover { filter: brightness(1.1); }
+.btn-ghost {
+    background: transparent;
+    color: var(--amber);
+    box-shadow: inset 0 0 0 1.5px var(--amber);
+}
+.btn-ghost:hover { background: rgba(245, 166, 35, .1); }
+.btn-link {
+    background: none;
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: .85rem;
+    letter-spacing: 0;
+    padding: 8px 12px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.btn-link:hover { color: var(--red); }
+
+/* ── Karten ─────────────────────────────────────────────── */
+.card {
+    background: var(--mid);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 16px;
+    text-align: left;
+}
+.card-highlight { border: 1px dashed var(--gold); }
+.card-title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 1.35rem;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 12px;
+}
+
+/* ── Formulare ──────────────────────────────────────────── */
+.field-label {
+    display: block;
+    font-size: .75rem;
+    color: var(--text-2);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin: 4px 0 6px;
+}
+.input-group { display: flex; gap: 8px; }
+.input-group input, .input {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--dark);
+    border: 2px solid var(--line);
+    border-radius: var(--radius-s);
+    color: var(--text);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color .2s;
+}
+.input { margin-bottom: 10px; }
+.input-group input:focus, .input:focus { border-color: var(--amber); }
+.mono-input {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+}
+
+/* ── Fortschrittsbalken (--pct: 0…1) ────────────────────── */
+.progress {
+    --pct: 0;
+    height: 8px;
+    background: var(--dark);
+    border-radius: 99px;
+    overflow: hidden;
+}
+.progress > span {
+    display: block;
+    height: 100%;
+    width: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--gold), var(--amber));
+    transform-origin: left;
+    transform: scaleX(var(--pct));
+    transition: transform .8s var(--ease-out);
+}
+
+/* ── Abzeichen ──────────────────────────────────────────── */
+.badge-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 16px; }
+.badge {
+    padding: 6px 12px;
+    border-radius: 99px;
+    background: rgba(245, 166, 35, .12);
+    border: 1px solid rgba(245, 166, 35, .35);
+    font-size: .8rem;
+    animation: pop-in .4s var(--ease-pop);
+}
+.dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+/* ── Leerer Zustand ─────────────────────────────────────── */
+.empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+    color: var(--muted);
+    padding: 60px 20px;
+}
+.empty big { font-size: 3rem; }
+
+/* ── Toast ──────────────────────────────────────────────── */
+.toast {
+    position: fixed;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%) translateY(150px);
+    max-width: calc(100vw - 32px);
+    background: var(--amber);
+    color: var(--dark);
+    padding: 10px 24px;
+    border-radius: 50px;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    letter-spacing: 2px;
+    box-shadow: var(--shadow);
+    opacity: 0;
+    transition: transform .35s var(--ease-pop), opacity .2s;
+    z-index: 200;
+    pointer-events: none;
+    text-align: center;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* ── Bierglas (siehe js/ui/glass.js) ────────────────────── */
+.glass {
+    --fill: 0;
+    --foam-y: 128px;
+    --beer-color: hsl(38 90% 55%);
+}
+.glass svg { width: 100%; height: 100%; overflow: visible; }
+.glass-beer {
+    fill: var(--beer-color);
+    transform-box: fill-box;
+    transform-origin: bottom;
+    transform: scaleY(var(--fill));
+    transition: transform .9s var(--ease-pop), fill .9s;
+}
+.glass-foam {
+    fill: #FFF9EC;
+    transform: translateY(var(--foam-y));
+    transition: transform .9s var(--ease-pop);
+}
+.glass-foam path {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: foam-wobble 3s ease-in-out infinite;
+}
+.glass-bubbles circle {
+    fill: rgba(255, 255, 255, .55);
+    animation: bubble var(--d) var(--delay) linear infinite;
+}
+.glass-outline { fill: rgba(255, 255, 255, .03); stroke: var(--amber); stroke-width: 2.5; stroke-linejoin: round; }
+.glass-handle  { fill: none; stroke: var(--amber); stroke-width: 3; stroke-linecap: round; }
+.glass-shine   { stroke: #fff; stroke-width: 2.5; stroke-linecap: round; opacity: .18; }
+.glass-empty   { fill: var(--muted); font: 14px var(--font-body); opacity: 0; transition: opacity .3s; }
+
+.glass.is-empty .glass-foam,
+.glass.is-empty .glass-bubbles { opacity: 0; }
+.glass.is-empty .glass-empty   { opacity: 1; }
+.glass.is-empty .glass-outline,
+.glass.is-empty .glass-handle  { opacity: .45; }
+.glass.slosh svg { animation: slosh .7s var(--ease-out); transform-origin: 50% 100%; }
+
+@keyframes foam-wobble {
+    0%, 100% { transform: scaleY(1); }
+    50%      { transform: scaleY(1.25) translateX(1px); }
+}
+@keyframes bubble {
+    0%   { transform: translateY(0); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { transform: translateY(calc(var(--fill) * -118px)); opacity: 0; }
+}
+@keyframes slosh {
+    0%   { transform: rotate(0); }
+    25%  { transform: rotate(-6deg); }
+    55%  { transform: rotate(4deg); }
+    80%  { transform: rotate(-1.5deg); }
+    100% { transform: rotate(0); }
+}

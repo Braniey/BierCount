@@ -1,0 +1,13 @@
+{
+  "rules": {
+    "sessions": {
+      "$session_id": {
+        ".read": true,
+        ".write": true,
+        "events": {
+          ".indexOn": ["player", "ts"]
+        }
+      }
+    }
+  }
+}

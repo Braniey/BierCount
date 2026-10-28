@@ -1,0 +1,119 @@
+/* ── Tokens ─────────────────────────────────────────────── */
+:root {
+    --amber:    #F5A623;
+    --foam:     #FFF4D6;
+    --dark:     #1A1008;
+    --mid:      #2a1d0c;
+    --mid-2:    #3D2B0F;
+    --line:     #4a3517;
+    --gold:     #D4870A;
+    --green:    #2ECC71;
+    --red:      #E74C3C;
+    --toilet:   #5aa9e6;
+    --smoke:    #a99d8a;
+
+    --text:     var(--foam);
+    --text-2:   #c9b994;
+    --muted:    #8a7a62;
+
+    --radius:   14px;
+    --radius-s: 8px;
+    --shadow:   0 10px 30px rgba(0, 0, 0, .35);
+    --ease-out: cubic-bezier(.2, .8, .2, 1);
+    --ease-pop: cubic-bezier(.34, 1.56, .64, 1);
+
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body:    'DM Sans', system-ui, sans-serif;
+
+    color-scheme: dark;
+}
+
+/* ── Reset ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+    font-family: var(--font-body);
+    background:
+        radial-gradient(1200px 600px at 50% -200px, rgba(245, 166, 35, .12), transparent 70%),
+        var(--dark);
+    background-attachment: fixed;
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button { font: inherit; color: inherit; }
+input  { font: inherit; }
+
+/* ── Navigation ─────────────────────────────────────────── */
+.tabs {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    background: rgba(42, 29, 12, .92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+    padding-top: env(safe-area-inset-top);
+}
+.tabs button {
+    flex: 1;
+    padding: 14px 6px 12px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--muted);
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: color .2s, background .2s, border-color .2s;
+}
+.tabs button:hover { color: var(--text-2); }
+.tabs button.active {
+    color: var(--amber);
+    background: rgba(245, 166, 35, .08);
+    border-bottom-color: var(--amber);
+}
+@media (max-width: 420px) {
+    .tabs button span { display: block; font-size: .85rem; letter-spacing: 1px; }
+}
+
+/* ── Layout ─────────────────────────────────────────────── */
+main { padding: 24px 16px calc(40px + env(safe-area-inset-bottom)); }
+.view { margin: 0 auto; animation: view-in .35s var(--ease-out); }
+#setup-view   { max-width: 440px; text-align: center; }
+#counter-view { max-width: 420px; text-align: center; }
+#dashboard-view, #stats-view { max-width: 1000px; }
+
+@keyframes view-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* ── Typografie-Helfer ──────────────────────────────────── */
+.muted   { color: var(--muted); }
+.small   { font-size: .85rem; }
+.mono    { font-variant-numeric: tabular-nums; }
+.eyebrow {
+    color: var(--muted);
+    font-size: .78rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+.eyebrow span { color: var(--amber); }
+
+.config-banner {
+    background: #5a1a00;
+    border-bottom: 1px solid var(--red);
+    padding: 12px 16px;
+    font-size: .85rem;
+    color: #ffa;
+}
+.config-banner code { background: rgba(255,255,255,.1); padding: 2px 6px; border-radius: 4px; }
+.config-banner a    { color: var(--amber); }

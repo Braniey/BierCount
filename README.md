@@ -1,100 +1,96 @@
-# 🍺 Bier Counter – Setup Anleitung
+# 🍺 Bier Counter
 
-## Schritt 1: Firebase Projekt erstellen
+Live-Zähler für die Leiterrunde: Bier, Kippen, Klo- und Raucherpausen zählen, mit Dashboard, Statistiken, Meilensteinen und Beamer-Modus.
+Läuft komplett statisch auf GitHub Pages, die Daten liegen in der Firebase Realtime Database.
 
-1. Geh zu [https://console.firebase.google.com](https://console.firebase.google.com)
-2. Klick **"Projekt erstellen"** → Name eingeben (z.B. `bier-counter`)
-3. Google Analytics: kannst du **deaktivieren**
-4. Projekt erstellen & warten
+## Features
 
-## Schritt 2: Realtime Database aktivieren
+- **Zähler** (Handy): großer „+ Bier“-Button, „+1 Kippe“, Klo-Pause und Raucherpause mit Live-Timer, Rückgängig-Buttons, persönliches Ziel
+- **Raucherpause** zählt automatisch eine Zigarette mit
+- **Meilensteine**: Konfetti und Overlay bei jedem 5. Bier, Gruppen-Feier bei jedem leeren Kasten (20 Bier)
+- **Dashboard**: Rangliste mit animierten Gläsern, wer gerade auf Klo oder rauchen ist, Liter, Kasten-Fortschritt, Live-Ticker
+- **Beamer-Modus**: Vollbild ohne Navigation, der Bildschirm bleibt an
+- **Statistik**: Kennzahlen, „Bier-Rennen“-Diagramm über den Abend, Titel des Abends (Bierkönig, Kettenraucher, Klo-König, …), Detailtabelle mit Abzeichen
+- **Einladen per Link** (`?s=SESSIONID`) und auf den Homescreen legen (PWA)
 
-1. Im Firebase-Seitenmenü: **Build → Realtime Database**
-2. **"Datenbank erstellen"** klicken
-3. Standort wählen: `europe-west1 (Belgium)` 
-4. Sicherheitsregeln: **"Im Testmodus starten"** auswählen ✅
-5. **Fertig stellen**
+## Projektstruktur
 
-> ⚠️ Testmodus gilt 30 Tage. Danach musst du die Regeln anpassen (siehe unten).
-
-## Schritt 3: Firebase Config kopieren
-
-1. Im Firebase-Projekt: Klick auf das **Zahnrad ⚙** oben links → **Projekteinstellungen**
-2. Scrolle nach unten zu **"Deine Apps"**
-3. Klick auf das **`</>`** Web-Symbol
-4. App-Nickname eingeben (egal was) → **App registrieren**
-5. Du siehst jetzt so einen Block:
-
-```javascript
-const firebaseConfig = {
-  apiKey: "AIzaSy...",
-  authDomain: "bier-counter-xyz.firebaseapp.com",
-  databaseURL: "https://bier-counter-xyz-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "bier-counter-xyz",
-  storageBucket: "bier-counter-xyz.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef"
-};
+```
+index.html                  Nur Markup – GitHub Pages braucht sie im Root
+manifest.webmanifest        PWA-Manifest (Homescreen-Icon, Vollbild)
+database.rules.json         Firebase-Sicherheitsregeln zum Reinkopieren
+icons/                      App-Icons
+css/
+  base.css                  Farben/Tokens, Reset, Navigation, Layout
+  components.css            Buttons, Karten, Formulare, Toast, Bierglas
+  views.css                 Styles der vier Ansichten + Beamer-Modus
+  effects.css               Animationen, Konfetti, Meilenstein-Overlay
+js/
+  app.js                    Einstieg: verbindet Store, Firebase und Views
+  config/firebase-config.js 🔧 Firebase-Zugangsdaten
+  services/firebase.js      Firebase-Initialisierung
+  services/session-service.js  Alle Datenbank-Zugriffe
+  core/constants.js         Event-Typen, Meilensteine, Farben
+  core/store.js             App-Zustand (Session, Spieler, Daten)
+  core/stats.js             Statistiken, Abzeichen, Titel (reine Logik)
+  ui/dom.js                 DOM-Helfer, Formatierung, Live-Timer
+  ui/glass.js               Animiertes Bierglas
+  ui/effects.js             Konfetti, Overlay, Vibration
+  ui/charts.js              Bier-Rennen-Diagramm
+  ui/toast.js               Kurze Hinweise
+  ui/views/*.js             Setup, Zähler, Dashboard, Statistik
 ```
 
-## Schritt 4: Config in index.html eintragen
+Kein Build-Schritt nötig: Die Dateien werden als native ES-Module direkt vom Browser geladen.
 
-Öffne `index.html` in einem Texteditor, suche den Abschnitt:
+## Datenmodell
 
-```javascript
-const firebaseConfig = {
-  apiKey:            "DEIN_API_KEY",
-  ...
+```
+sessions/{SESSIONID}
+  name, createdAt
+  players/{Name}
+    count      Anzahl Bier
+    cigs       Anzahl Zigaretten
+    joinedAt
+    status     { type: "toilet" | "smoke", since } während einer Pause
+  events/{pushId}
+    { type: "beer" | "cig", player, ts }
+    { type: "toilet" | "smoke", player, ts, end }   abgeschlossene Pausen
 ```
 
-Ersetze alle Werte mit deinen echten Werten aus Schritt 3.
+Zähler und Event werden immer zusammen in einem atomaren Update geschrieben (`increment`), damit gleichzeitige Klicks nichts verschlucken.
+Alte Sessions, die nur `count` haben, funktionieren weiter. Für sie fehlen nur die Zeitverläufe.
 
-## Schritt 5: Auf GitHub Pages hosten
+## Setup
 
-1. Erstelle ein neues **GitHub Repository** (z.B. `bier-counter`)
-2. Lade `index.html` hoch (einfach per Drag & Drop auf GitHub)
-3. Geh zu **Settings → Pages**
-4. Source: **Deploy from a branch** → Branch: `main` → Ordner: `/ (root)`
-5. Speichern – nach ~1 Minute ist die Seite live unter:
-   `https://DEIN-USERNAME.github.io/bier-counter/`
+### 1. Firebase-Projekt
 
-## Schritt 6: Benutzen!
+1. [Firebase Console](https://console.firebase.google.com) → **Projekt erstellen** (Analytics kann aus)
+2. **Build → Realtime Database → Datenbank erstellen**, Standort `europe-west1`
+3. **Projekteinstellungen → Deine Apps → `</>` Web-App** registrieren und die Config kopieren
+4. Die Werte in **`js/config/firebase-config.js`** eintragen
 
-### Handy-Ansicht (jeder Trinker):
-1. Seite öffnen → **Setup-Tab**
-2. Session-Name eingeben → **START** (macht eine neue Session)
-   ODER Session-ID eingeben + eigenen Namen → **BEITRETEN**
-3. Auf **Zähler-Tab** wechseln
-4. **+ BIER** tippen wenn ein Bier leer ist 🍺
+### 2. Sicherheitsregeln
 
-### PC-Ansicht (Gesamtübersicht):
-1. Gleiche URL öffnen
-2. Session beitreten (oder erstellen)
-3. **Dashboard-Tab** öffnen → alle Spieler + Gesamtcount live
+In Firebase → Realtime Database → **Regeln** den Inhalt von [`database.rules.json`](database.rules.json) einfügen und veröffentlichen.
 
-## Sicherheitsregeln nach 30 Tagen
+### 3. GitHub Pages
 
-In Firebase → Realtime Database → Regeln → folgendes eintragen:
+**Settings → Pages → Deploy from a branch** → `main` / `(root)`. Nach ca. 1 Minute ist die Seite live.
 
-```json
-{
-  "rules": {
-    "sessions": {
-      "$session_id": {
-        ".read": true,
-        ".write": true
-      }
-    }
-  }
-}
+### Lokal testen
+
+ES-Module funktionieren nicht über `file://`, deshalb einen kleinen Server starten:
+
+```bash
+python3 -m http.server 8000
 ```
 
----
+Dann <http://localhost:8000> öffnen.
 
-## Tipps
+## Benutzen
 
-- Die Session-ID (6 Buchstaben) an alle Mitspieler schicken
-- Browser speichert Name + Session automatisch (localStorage)
-- Glasfüllstand zeigt relativen Fortschritt (max. Anzeige = 20 Bier)
-- Bei 0 Bier ist das Glas leer dargestellt
-- Krone 👑 beim Führenden im Dashboard
+1. **Setup**: Session-Namen eingeben → **Start**. Die Session-ID wird automatisch eingetragen.
+2. Eigenen Namen eingeben → **Beitreten**
+3. **Link teilen**: Die anderen öffnen den Link, geben ihren Namen ein und sind drin.
+4. **Zähler** am Handy, **Dashboard** am Laptop oder Beamer, **Statistik** für die Auswertung
