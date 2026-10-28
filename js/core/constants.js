@@ -13,7 +13,7 @@ export const PAUSE = {
 };
 
 export const LITERS_PER_BEER = 0.2;
-export const BEERS_PER_CRATE = 50;
+export const BEERS_PER_CRATE = 25;
 
 // Persönliche Meilensteine: jede 5er-Marke, mit Sprüchen für die besonderen
 const MILESTONE_TEXT = {
@@ -22,7 +22,7 @@ const MILESTONE_TEXT = {
     10: 'Zweistellig!',
     15: 'Ist i.O.',
     20: 'Stabil!',
-    25: 'Geht´s dir gut?',
+    25: 'Fässchen geschafft',
     30: 'Auch mal an Suchtberatung gedacht?',
 };
 
