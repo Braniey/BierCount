@@ -12,18 +12,18 @@ export const PAUSE = {
     smoke:  { icon: '🚬', label: 'Raucherpause', active: 'beim Rauchen' },
 };
 
-export const LITERS_PER_BEER = 0.5;
-export const BEERS_PER_CRATE = 20;
+export const LITERS_PER_BEER = 0.2;
+export const BEERS_PER_CRATE = 50;
 
 // Persönliche Meilensteine: jede 5er-Marke, mit Sprüchen für die besonderen
 const MILESTONE_TEXT = {
     1:  'Der Abend beginnt!',
     5:  'Warmgetrunken',
     10: 'Zweistellig!',
-    15: 'Läuft bei dir',
-    20: 'Ein ganzer Kasten!',
-    25: 'Legendär',
-    30: 'Ist das noch gesund?',
+    15: 'Ist i.O.',
+    20: 'Stabil!',
+    25: 'Geht´s dir gut?',
+    30: 'Auch mal an Suchtberatung gedacht?',
 };
 
 export function milestoneFor(count) {
