@@ -149,6 +149,7 @@
             </div>
 
             <div id="my-badges" class="badge-row"></div>
+            <button class="btn btn-link" data-open-legend>Was bedeuten die Abzeichen?</button>
         </div>
     </section>
 
@@ -166,7 +167,10 @@
                     <div class="eyebrow">Live-Übersicht</div>
                     <h1 id="dash-title" class="dash-title"></h1>
                 </div>
-                <button id="beamer-btn" class="btn btn-ghost">📺 Beamer-Modus</button>
+                <div class="header-actions">
+                    <button class="btn btn-ghost" data-open-legend>ⓘ Legende</button>
+                    <button id="beamer-btn" class="btn btn-ghost">📺 Beamer-Modus</button>
+                </div>
             </header>
 
             <div class="totals">
@@ -216,7 +220,10 @@
             </div>
 
             <div class="card">
-                <h2 class="card-title">Titel des Abends</h2>
+                <div class="card-head">
+                    <h2 class="card-title">Titel des Abends</h2>
+                    <button class="btn btn-link" data-open-legend>ⓘ Legende</button>
+                </div>
                 <div id="awards" class="awards"></div>
             </div>
 
@@ -243,6 +250,19 @@
         </div>
     </section>
 </main>
+
+<dialog id="legend" class="legend-dialog" aria-labelledby="legend-title">
+    <div class="legend-head">
+        <h2 id="legend-title" class="card-title">Legende</h2>
+        <button class="legend-close" data-close-legend aria-label="Schließen">✕</button>
+    </div>
+    <h3 class="legend-section">Abzeichen</h3>
+    <p class="muted small">Jeder kann sie sich verdienen.</p>
+    <ul id="legend-badges" class="legend-list"></ul>
+    <h3 class="legend-section">Titel des Abends</h3>
+    <p class="muted small">Gehen an den Besten der Runde. Bei Gleichstand wird geteilt, außer beim Bierkönig.</p>
+    <ul id="legend-awards" class="legend-list"></ul>
+</dialog>
 
 <div id="milestone" class="milestone" aria-live="polite"></div>
 <div id="toast" class="toast" role="status"></div>

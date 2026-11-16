@@ -408,3 +408,9 @@ body.beamer #beamer-btn:hover { opacity: 1; }
 .stats-table tbody th { font-weight: 700; }
 .stats-table td { font-variant-numeric: tabular-nums; }
 .stats-table .badges-cell { text-align: left; letter-spacing: 2px; }
+
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card-head .btn-link { padding: 4px 0; }
+body.beamer .header-actions .btn { opacity: .25; }
+body.beamer .header-actions .btn:hover { opacity: 1; }

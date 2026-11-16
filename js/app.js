@@ -12,6 +12,7 @@ import { initSetupView, renderSetupView } from './ui/views/setup-view.js';
 import { initCounterView, renderCounterView } from './ui/views/counter-view.js';
 import { initDashboardView, renderDashboardView } from './ui/views/dashboard-view.js';
 import { initStatsView, renderStatsView } from './ui/views/stats-view.js';
+import { initLegend } from './ui/legend.js';
 
 const VIEWS = {
     setup:     renderSetupView,
@@ -223,6 +224,7 @@ function init() {
     initCounterView(actions);
     initDashboardView();
     initStatsView();
+    initLegend();
 
     subscribe(render);
     document.addEventListener('goal-changed', render);

@@ -1,6 +1,6 @@
 // Reine Berechnungen auf dem Session-Snapshot – kein DOM, kein Firebase.
 
-import { EVENT, LITERS_PER_BEER, BEERS_PER_CRATE, SERIES_COLORS } from './constants.js';
+import { EVENT, LITERS_PER_BEER, BEERS_PER_CRATE, SERIES_COLORS, BADGES, AWARDS } from './constants.js';
 
 const HOUR = 3_600_000;
 const LIVE_WINDOW = 3 * HOUR; // so lange nach der letzten Aktivität gilt eine Session als "läuft"
@@ -124,19 +124,19 @@ function assignBadges(players, allEvents) {
 
     for (const p of players) {
         if (firstBeer?.player === p.name) {
-            p.badges.push({ icon: '🐣', title: 'Frühstarter', desc: 'Erstes Bier des Abends' });
+            p.badges.push(BADGES.earlyBird);
         }
         if (toiletStarts[0]?.player === p.name) {
-            p.badges.push({ icon: '🔓', title: 'Siegel gebrochen', desc: 'Als Erstes aufs Klo' });
+            p.badges.push(BADGES.sealBroken);
         }
         if (hasWindow(p.beerTimes, 3, HOUR)) {
-            p.badges.push({ icon: '🎩', title: 'Hattrick', desc: '3 Bier in einer Stunde' });
+            p.badges.push(BADGES.hattrick);
         }
         if (p.beers >= 10) {
-            p.badges.push({ icon: '🔟', title: 'Zweistellig', desc: '10 Bier oder mehr' });
+            p.badges.push(BADGES.tenner);
         }
         if (p.cigs === 0 && totalCigs > 0 && p.beers >= 3) {
-            p.badges.push({ icon: '🚭', title: 'Standhaft', desc: 'Keine Kippe, obwohl andere rauchen' });
+            p.badges.push(BADGES.steadfast);
         }
     }
 }
@@ -150,7 +150,7 @@ function hasWindow(times, n, windowMs) {
 
 // Titel des Abends – bei Gleichstand teilen sich alle den Titel (außer Bierkönig)
 function computeAwards(players, ranking) {
-    const award = (icon, title, candidates, value, format, lowerIsBetter = false) => {
+    const award = ({ icon, title }, candidates, value, format, lowerIsBetter = false) => {
         if (!candidates.length) return null;
         const best = candidates.reduce((acc, p) => {
             const v = value(p);
@@ -164,17 +164,17 @@ function computeAwards(players, ranking) {
     return [
         // Bierkönig ist immer genau die #1 der Rangliste
         ranking[0]?.beers > 0
-            ? { icon: '👑', title: 'Bierkönig', winners: [ranking[0].name], detail: `${ranking[0].beers} Bier` }
+            ? { ...AWARDS.beerKing, winners: [ranking[0].name], detail: `${ranking[0].beers} Bier` }
             : null,
-        award('⚡', 'Schnellster Trinker', players.filter(p => p.beerTimes.length >= 3),
+        award(AWARDS.fastest, players.filter(p => p.beerTimes.length >= 3),
             p => Math.round(p.avgIntervalMin), v => `Ø ${v} min pro Bier`, true),
-        award('🚬', 'Kettenraucher', players.filter(p => p.cigs > 0),
+        award(AWARDS.chain, players.filter(p => p.cigs > 0),
             p => p.cigs, v => `${v} Kippen`),
-        award('🚽', 'Klo-König', players.filter(p => p.toilet.totalMs > 0),
+        award(AWARDS.toiletKing, players.filter(p => p.toilet.totalMs > 0),
             p => p.toilet.totalMs, v => `${formatMinutes(v)} auf Klo`),
-        award('🧻', 'Längste Sitzung', players.filter(p => p.toilet.longestMs > 0),
+        award(AWARDS.longest, players.filter(p => p.toilet.longestMs > 0),
             p => p.toilet.longestMs, v => `${formatMinutes(v)} am Stück`),
-        award('🫧', 'Eiserne Blase', players.filter(p => p.beers >= 4),
+        award(AWARDS.ironBladder, players.filter(p => p.beers >= 4),
             p => +(p.beers / (p.toilet.visits + 1)).toFixed(2),
             (v, p) => p.toilet.visits ? `${p.beers} Bier, nur ${p.toilet.visits}× auf Klo` : `${p.beers} Bier, noch kein Klogang`),
     ].filter(Boolean);

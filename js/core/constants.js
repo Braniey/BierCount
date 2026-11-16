@@ -41,3 +41,22 @@ export const SERIES_COLORS = [
 
 // Erlaubte Namen: Firebase-Keys dürfen . # $ [ ] / nicht enthalten
 export const INVALID_KEY_CHARS = /[.#$[\]/]/;
+
+// Persönliche Abzeichen – jeder kann sie verdienen (Legende + stats.js)
+export const BADGES = {
+    earlyBird: { icon: '🐣', title: 'Frühstarter',      desc: 'Erstes Bier des Abends' },
+    sealBroken:{ icon: '🔓', title: 'Siegel gebrochen', desc: 'Als Erstes aufs Klo' },
+    hattrick:  { icon: '🎩', title: 'Hattrick',         desc: '3 Bier innerhalb einer Stunde' },
+    tenner:    { icon: '🔟', title: 'Zweistellig',      desc: '10 Bier oder mehr' },
+    steadfast: { icon: '🚭', title: 'Standhaft',        desc: 'Mindestens 3 Bier und keine Kippe, obwohl andere rauchen' },
+};
+
+// Titel des Abends – gehen an den Besten der Runde (Legende + stats.js)
+export const AWARDS = {
+    beerKing:   { icon: '👑', title: 'Bierkönig',           desc: 'Platz 1 der Rangliste' },
+    fastest:    { icon: '⚡', title: 'Schnellster Trinker', desc: 'Kürzeste Zeit pro Bier (ab 3 Bier)' },
+    chain:      { icon: '🚬', title: 'Kettenraucher',       desc: 'Die meisten Zigaretten' },
+    toiletKing: { icon: '🚽', title: 'Klo-König',           desc: 'Insgesamt am längsten auf Klo' },
+    longest:    { icon: '🧻', title: 'Längste Sitzung',     desc: 'Längster einzelner Klogang' },
+    ironBladder:{ icon: '🫧', title: 'Eiserne Blase',       desc: 'Die meisten Bier pro Klogang (ab 4 Bier)' },
+};
