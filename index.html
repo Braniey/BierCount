@@ -237,12 +237,12 @@
         <div id="stats-main" hidden>
             <div id="stat-tiles" class="stat-tiles"></div>
 
-            <div class="card">
-                <h2 class="card-title">Das Bier-Rennen</h2>
+            <div id="race-card" class="card">
+                <h2 id="race-title" class="card-title">Das Bier-Rennen</h2>
                 <div id="race-chart" class="race-chart"></div>
             </div>
 
-            <div class="card">
+            <div id="awards-card" class="card">
                 <div class="card-head">
                     <h2 class="card-title">Titel des Abends</h2>
                     <button class="btn btn-link" data-open-legend>ⓘ Legende</button>
@@ -254,18 +254,7 @@
                 <h2 class="card-title">Alle im Detail</h2>
                 <div class="table-wrap">
                     <table id="stats-table" class="stats-table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Name</th>
-                                <th scope="col">🍺</th>
-                                <th scope="col">Ø/Bier</th>
-                                <th scope="col">🚬</th>
-                                <th scope="col">🚽</th>
-                                <th scope="col">Klo-Zeit</th>
-                                <th scope="col">💨</th>
-                                <th scope="col">Abzeichen</th>
-                            </tr>
-                        </thead>
+                        <thead id="stats-head"></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -283,7 +272,7 @@
     <p class="muted small">Jeder kann sie sich verdienen.</p>
     <ul id="legend-badges" class="legend-list"></ul>
     <h3 class="legend-section">Titel des Abends</h3>
-    <p class="muted small">Gehen an den Besten der Runde. Bei Gleichstand wird geteilt, außer beim Bierkönig.</p>
+    <p class="muted small">Gehen an den Besten der Runde. Bei Gleichstand wird geteilt, außer beim König.</p>
     <ul id="legend-awards" class="legend-list"></ul>
 </dialog>
 

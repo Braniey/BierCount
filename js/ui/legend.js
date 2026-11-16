@@ -1,8 +1,9 @@
-// Legende der Abzeichen und Titel als Dialog. Öffnet sich über jeden Button
+// Legende der Abzeichen und Titel als Dialog, mit den Texten für das
+// Getränk der aktuellen Session. Öffnet sich über jeden Button
 // mit data-open-legend und beim Antippen eines Abzeichens.
 
 import { $, esc } from './dom.js';
-import { BADGES, AWARDS } from '../core/constants.js';
+import { DRINKS, badgesFor, awardsFor } from '../core/constants.js';
 
 const BADGE_SELECTOR = '[data-open-legend], .badge, .p-badges span, .badges-cell span';
 
@@ -15,13 +16,16 @@ const item = ({ icon, title, desc }) => `
     </div>
   </li>`;
 
-export function initLegend() {
+// currentDrink(): Getränk der aktiven Session (null beim gemischten Abend)
+export function initLegend(currentDrink) {
     const dialog = $('#legend');
-    $('#legend-badges').innerHTML = Object.values(BADGES).map(item).join('');
-    $('#legend-awards').innerHTML = Object.values(AWARDS).map(item).join('');
 
     document.addEventListener('click', e => {
-        if (e.target.closest(BADGE_SELECTOR) && !dialog.open) dialog.showModal();
+        if (!e.target.closest(BADGE_SELECTOR) || dialog.open) return;
+        const drink = currentDrink() || DRINKS.beer;
+        $('#legend-badges').innerHTML = Object.values(badgesFor(drink)).map(item).join('');
+        $('#legend-awards').innerHTML = Object.values(awardsFor(drink)).map(item).join('');
+        dialog.showModal();
     });
     dialog.addEventListener('click', e => {
         // Klick auf den Hintergrund oder das ✕ schließt
