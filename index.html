@@ -121,12 +121,23 @@
                 <button id="pause-end-btn" class="btn btn-primary">Zurück am Tisch</button>
             </div>
 
-            <div id="my-glass" class="glass-lg"></div>
-            <div id="my-count" class="big-count">0</div>
-            <div class="eyebrow">Bier getrunken</div>
-            <div id="my-pace" class="pace muted"></div>
+            <!-- Ein Getränk -->
+            <div id="counter-single">
+                <div id="my-glass" class="glass-lg"></div>
+                <div id="my-count" class="big-count">0</div>
+                <div id="my-count-label" class="eyebrow">Bier getrunken</div>
+                <div id="my-pace" class="pace muted"></div>
 
-            <button id="beer-btn" class="plus-btn">+ Bier</button>
+                <button id="drink-btn" class="plus-btn">+ Bier</button>
+            </div>
+
+            <!-- Gemischt -->
+            <div id="counter-mixed" hidden>
+                <div id="mixed-total" class="big-count">0</div>
+                <div class="eyebrow">Getränke</div>
+                <div id="mixed-breakdown" class="pace muted"></div>
+                <div id="drink-grid" class="drink-grid"></div>
+            </div>
 
             <div class="action-grid">
                 <button id="cig-btn" class="action-btn">
@@ -147,22 +158,24 @@
             </div>
 
             <div class="undo-row">
-                <button id="undo-beer-btn" class="btn btn-link">− 1 Bier</button>
+                <button id="undo-drink-btn" class="btn btn-link">− 1 Bier</button>
                 <button id="undo-cig-btn" class="btn btn-link">− 1 Kippe</button>
             </div>
 
-            <div class="goal card">
+            <div id="goal-card" class="goal card">
                 <div class="goal-row">
                     <label for="goal-input">Ziel heute</label>
                     <input id="goal-input" type="number" min="1" max="99" value="10" inputmode="numeric" />
-                    <span>Bier</span>
+                    <span id="goal-unit">Bier</span>
                 </div>
                 <div id="goal-bar" class="progress"><span></span></div>
                 <div id="goal-progress" class="goal-progress"></div>
             </div>
 
-            <div id="my-badges" class="badge-row"></div>
-            <button class="btn btn-link" data-open-legend>Was bedeuten die Abzeichen?</button>
+            <div id="counter-badges">
+                <div id="my-badges" class="badge-row"></div>
+                <button class="btn btn-link" data-open-legend>Was bedeuten die Abzeichen?</button>
+            </div>
         </div>
     </section>
 

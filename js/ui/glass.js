@@ -1,6 +1,8 @@
 // Animiertes Bierglas. Das SVG wird einmal erzeugt; danach ändern sich nur
 // CSS-Variablen, damit Füllstand und Farbe per Transition weich übergehen.
 
+import { DRINKS } from '../core/constants.js';
+
 let uid = 0;
 
 // Innenraum des Glases im viewBox-Koordinatensystem (0 0 100 150)
@@ -35,15 +37,13 @@ export function createGlass(container, { bubbles = true } = {}) {
       </svg>`;
 
     return {
-        set(count, max) {
+        set(count, max, drink = DRINKS.beer) {
             const fill = count > 0 ? Math.min(count / Math.max(max, 1), 1) : 0;
-            // Je mehr Bier, desto dunkler/röter wird's
-            const hue = Math.max(18, 40 - count * 1.2);
-            const light = Math.max(34, 55 - count);
             container.style.setProperty('--fill', fill);
             container.style.setProperty('--foam-y', `${(1 - fill) * INNER_H}px`);
-            container.style.setProperty('--beer-color', `hsl(${hue} 90% ${light}%)`);
+            container.style.setProperty('--beer-color', liquidColor(count, drink));
             container.classList.toggle('is-empty', count === 0);
+            container.classList.toggle('no-foam', !drink.foam);
         },
         slosh() {
             container.classList.remove('slosh');
@@ -51,4 +51,14 @@ export function createGlass(container, { bubbles = true } = {}) {
             container.classList.add('slosh');
         },
     };
+}
+
+// Je mehr getrunken, desto dunkler wird's
+function liquidColor(count, drink) {
+    if (drink.id === 'beer') {
+        const hue = Math.max(18, 40 - count * 1.2);
+        const light = Math.max(34, 55 - count);
+        return `hsl(${hue} 90% ${light}%)`;
+    }
+    return `color-mix(in oklab, ${drink.color}, black ${Math.min(count * 2.5, 30)}%)`;
 }

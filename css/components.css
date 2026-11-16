@@ -188,6 +188,7 @@
 .glass-shine   { stroke: #fff; stroke-width: 2.5; stroke-linecap: round; opacity: .18; }
 .glass-empty   { fill: var(--muted); font: 14px var(--font-body); opacity: 0; transition: opacity .3s; }
 
+.glass.no-foam .glass-foam,
 .glass.is-empty .glass-foam,
 .glass.is-empty .glass-bubbles { opacity: 0; }
 .glass.is-empty .glass-empty   { opacity: 1; }
