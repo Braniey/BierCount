@@ -3,11 +3,12 @@
 // Datenmodell:
 // sessions/{id}
 //   name, createdAt
-//   players/{name}: { count, cigs, joinedAt, status: { type, since } | null }
-//   events/{pushId}: { type, player, ts, end? }
+//   config: { mode: 'single' | 'mixed', drinks: [id, …], beerSize? }
+//   players/{name}: { drinks: { [id]: n }, cigs, joinedAt, status: { type, since } | null }
+//   events/{pushId}: { type, drink?, player, ts, end? }
 //
-// `count` und `cigs` bleiben als Summen erhalten (kompatibel zu alten Sessions),
-// die Events liefern zusätzlich die Zeitstempel für Statistiken.
+// Die Zähler sind Summen für die schnelle Anzeige, die Events liefern
+// zusätzlich die Zeitstempel für Statistiken.
 // Zähler und Event werden immer in EINEM Multi-Path-Update geschrieben,
 // damit nichts auseinanderläuft.
 
@@ -24,10 +25,13 @@ function genId(length = 6) {
 const sessionRef = id => ref(db, `sessions/${id}`);
 const newEventKey = id => push(ref(db, `sessions/${id}/events`)).key;
 
-export async function createSession(name) {
+// config: { mode, drinks, beerSize } – wird nur hier geschrieben, nie geändert
+export async function createSession(name, { mode, drinks, beerSize }) {
     let id = genId();
     while ((await get(sessionRef(id))).exists()) id = genId();
-    await set(sessionRef(id), { name, createdAt: Date.now() });
+    const config = { mode, drinks };
+    if (drinks.includes('beer')) config.beerSize = beerSize;
+    await set(sessionRef(id), { name, createdAt: Date.now(), config });
     return id;
 }
 
@@ -40,7 +44,7 @@ export async function joinSession(id, player) {
     const playerRef = ref(db, `sessions/${id}/players/${player}`);
     const snap = await get(playerRef);
     if (!snap.exists()) {
-        await set(playerRef, { count: 0, cigs: 0, joinedAt: Date.now() });
+        await set(playerRef, { cigs: 0, joinedAt: Date.now() });
     }
 }
 
@@ -48,10 +52,18 @@ export function subscribeSession(id, callback) {
     return onValue(sessionRef(id), snap => callback(snap.val()));
 }
 
-export function addBeer(id, player) {
+export function addDrink(id, player, drink) {
     return update(sessionRef(id), {
-        [`players/${player}/count`]: increment(1),
-        [`events/${newEventKey(id)}`]: { type: EVENT.BEER, player, ts: Date.now() },
+        [`players/${player}/drinks/${drink}`]: increment(1),
+        [`events/${newEventKey(id)}`]: { type: EVENT.DRINK, drink, player, ts: Date.now() },
+    });
+}
+
+// event: das zurückzunehmende Getränk-Event (siehe core/undo.js)
+export function undoDrink(id, player, event) {
+    return update(sessionRef(id), {
+        [`players/${player}/drinks/${event.drink}`]: increment(-1),
+        [`events/${event.key}`]: null,
     });
 }
 
@@ -62,15 +74,14 @@ export function addCig(id, player) {
     });
 }
 
-// Nimmt den letzten Eintrag eines Typs zurück. `events` ist der aktuelle
-// Snapshot aus dem Store, damit kein zusätzlicher Query nötig ist.
-export function undoLast(id, player, type, events = {}) {
-    const field = type === EVENT.BEER ? 'count' : 'cigs';
+// Nimmt die letzte Kippe zurück. `events` ist der aktuelle Snapshot aus dem
+// Store, damit kein zusätzlicher Query nötig ist.
+export function undoCig(id, player, events = {}) {
     const lastKey = Object.entries(events)
-        .filter(([, e]) => e.player === player && e.type === type)
+        .filter(([, e]) => e.player === player && e.type === EVENT.CIG)
         .sort(([, a], [, b]) => b.ts - a.ts)[0]?.[0];
 
-    const changes = { [`players/${player}/${field}`]: increment(-1) };
+    const changes = { [`players/${player}/cigs`]: increment(-1) };
     if (lastKey) changes[`events/${lastKey}`] = null;
     return update(sessionRef(id), changes);
 }

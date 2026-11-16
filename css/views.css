@@ -195,12 +195,11 @@ body.on-pause .plus-btn { opacity: .55; }
 
 .totals {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.6fr);
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 12px;
     margin-bottom: 16px;
 }
 @media (max-width: 640px) {
-    .totals { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .totals .crate { grid-column: 1 / -1; }
 }
 .total-badge {
@@ -408,3 +407,61 @@ body.beamer #beamer-btn:hover { opacity: 1; }
 .stats-table tbody th { font-weight: 700; }
 .stats-table td { font-variant-numeric: tabular-nums; }
 .stats-table .badges-cell { text-align: left; letter-spacing: 2px; }
+
+.header-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card-head .btn-link { padding: 4px 0; }
+body.beamer .header-actions .btn { opacity: .25; }
+body.beamer .header-actions .btn:hover { opacity: 1; }
+.current-drinks { margin-top: 4px; color: var(--text-2); font-size: .9rem; }
+
+/* Zähler im gemischten Modus */
+.drink-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+}
+.drink-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 14px 6px 12px;
+    border: 1.5px solid var(--line);
+    border-top: 4px solid var(--drink-color);
+    border-radius: var(--radius);
+    background: var(--mid);
+    cursor: pointer;
+    user-select: none;
+    transition: transform .1s, border-color .2s;
+}
+.drink-tile:hover  { border-color: var(--gold); border-top-color: var(--drink-color); }
+.drink-tile:active { transform: scale(.95); }
+.drink-tile-icon  { font-size: 2.2rem; line-height: 1.1; }
+.drink-tile-name  { font-family: var(--font-display); font-size: 1.1rem; letter-spacing: 1.5px; }
+.drink-tile-count { font-family: var(--font-display); font-size: 1.8rem; color: var(--amber); line-height: 1; }
+
+/* Getränke-Summen: im Gitter der Totals aufgehen lassen */
+.drink-totals { display: contents; }
+.totals .crate { grid-column: span 2; }
+
+/* Dashboard im gemischten Modus: keine Wertung */
+.players-grid.mixed .p-rank,
+.players-grid.mixed .leader-badge,
+.players-grid.mixed .mini-glass,
+.players-grid.mixed .p-count,
+.players-grid.mixed .p-count-lbl,
+.players-grid:not(.mixed) .p-drinks { display: none; }
+.p-drinks {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 12px;
+    margin: 4px 0 2px;
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    color: var(--amber);
+}
+.p-drinks .muted { font-family: var(--font-body); font-size: .9rem; }
+body.beamer .p-drinks { font-size: 2.2rem; }

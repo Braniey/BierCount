@@ -1,4 +1,4 @@
-import { $, esc, formatAgo, formatTimer } from '../dom.js';
+import { $, $$, esc, formatAgo, formatTimer } from '../dom.js';
 import { createGlass } from '../glass.js';
 import { bump, floatFrom, vibrate } from '../effects.js';
 import { PAUSE } from '../../core/constants.js';
@@ -7,16 +7,27 @@ const GOAL_KEY = player => `bier_goal_${player}`;
 
 let glass;
 let lastCount = null;
+let lastDrinkId = null;
+let main = null;       // Getränk des Abends (null = gemischt)
+let gridKey = '';      // welche Getränke gerade als Kacheln stehen
 
-// actions: { addBeer(), addCig(), undoBeer(), undoCig(), togglePause(type), goToSetup() }
+// actions: { addDrink(id), undoDrink(), addCig(), undoCig(), togglePause(type), goToSetup() }
 export function initCounterView(actions) {
     glass = createGlass($('#my-glass'));
     glass.set(0, 10);
 
-    $('#beer-btn').addEventListener('click', e => {
-        actions.addBeer();
-        floatFrom(e.currentTarget, '+1 🍺');
+    $('#drink-btn').addEventListener('click', e => {
+        if (!main) return;
+        actions.addDrink(main.id);
+        floatFrom(e.currentTarget, `+1 ${main.icon}`);
         glass.slosh();
+        vibrate(30);
+    });
+    $('#drink-grid').addEventListener('click', e => {
+        const tile = e.target.closest('[data-drink]');
+        if (!tile) return;
+        actions.addDrink(tile.dataset.drink);
+        floatFrom(tile, `+1 ${tile.dataset.icon}`);
         vibrate(30);
     });
     $('#cig-btn').addEventListener('click', e => {
@@ -27,7 +38,7 @@ export function initCounterView(actions) {
     $('#toilet-btn').addEventListener('click', () => { actions.togglePause('toilet'); vibrate(20); });
     $('#smoke-btn').addEventListener('click',  () => { actions.togglePause('smoke');  vibrate(20); });
     $('#pause-end-btn').addEventListener('click', () => actions.togglePause(null));
-    $('#undo-beer-btn').addEventListener('click', actions.undoBeer);
+    $('#undo-drink-btn').addEventListener('click', actions.undoDrink);
     $('#undo-cig-btn').addEventListener('click', actions.undoCig);
     $('#counter-setup-btn').addEventListener('click', actions.goToSetup);
 
@@ -48,6 +59,24 @@ export function renderCounterView(state, stats) {
 
     $('#c-session-name').textContent = state.data?.name || state.session.name;
     $('#c-username').textContent = me.name;
+    $('#my-cigs').textContent = me.cigs;
+    renderPause(me.status);
+
+    main = stats.main;
+    $('#counter-single').hidden = !main;
+    $('#counter-mixed').hidden = !!main;
+    $('#goal-card').hidden = !main;
+    $('#counter-badges').hidden = !main;
+
+    if (main) renderSingle(me, main);
+    else renderMixed(me, stats.drinks);
+}
+
+function renderSingle(me, drink) {
+    $('#my-count-label').textContent = `${drink.name} getrunken`;
+    $('#drink-btn').textContent = `+ ${drink.name}`;
+    $('#undo-drink-btn').textContent = `− 1 ${drink.name}`;
+    $('#goal-unit').textContent = drink.name;
 
     const goalInput = $('#goal-input');
     if (goalInput.dataset.player !== me.name) {
@@ -58,27 +87,58 @@ export function renderCounterView(state, stats) {
     }
     const goal = parseInt(goalInput.value, 10) || 10;
 
-    // Bier
     const countEl = $('#my-count');
-    if (me.beers !== lastCount) {
-        countEl.textContent = me.beers;
-        if (lastCount !== null && me.beers > lastCount) bump(countEl);
-        glass.set(me.beers, goal);
-        lastCount = me.beers;
+    if (me.count !== lastCount || drink.id !== lastDrinkId) {
+        countEl.textContent = me.count;
+        if (lastCount !== null && drink.id === lastDrinkId && me.count > lastCount) bump(countEl);
+        glass.set(me.count, goal, drink);
+        lastCount = me.count;
+        lastDrinkId = drink.id;
     }
-    $('#my-cigs').textContent = me.cigs;
 
     const pace = [];
-    if (me.avgIntervalMin >= 1) pace.push(`Ø ${Math.round(me.avgIntervalMin)} min pro Bier`);
-    if (me.lastBeer) pace.push(`letztes <span data-ago="${me.lastBeer}">${formatAgo(me.lastBeer)}</span>`);
+    if (me.avgIntervalMin >= 1) pace.push(`Ø ${Math.round(me.avgIntervalMin)} min pro ${esc(drink.name)}`);
+    if (me.lastDrinkAt) pace.push(`zuletzt <span data-ago="${me.lastDrinkAt}">${formatAgo(me.lastDrinkAt)}</span>`);
     $('#my-pace').innerHTML = pace.join(' · ');
 
-    renderGoal(me.beers, goal);
-    renderPause(me.status);
+    renderGoal(me.count, goal);
 
     $('#my-badges').innerHTML = me.badges.map(b =>
         `<span class="badge" title="${esc(b.desc)}">${b.icon} ${esc(b.title)}</span>`
     ).join('');
+}
+
+function renderMixed(me, drinks) {
+    $('#undo-drink-btn').textContent = '↶ Letztes Getränk zurück';
+
+    const totalEl = $('#mixed-total');
+    if (totalEl.textContent !== String(me.count)) {
+        if (totalEl.textContent && me.count > Number(totalEl.textContent)) bump(totalEl);
+        totalEl.textContent = me.count;
+    }
+    $('#mixed-breakdown').textContent = drinks
+        .filter(d => me.drinks[d.id])
+        .map(d => `${d.icon} ${me.drinks[d.id]}`)
+        .join(' · ');
+
+    // Kacheln nur neu aufbauen, wenn sich die Getränkeliste ändert
+    const key = drinks.map(d => d.id).join(',');
+    if (key !== gridKey) {
+        gridKey = key;
+        $('#drink-grid').innerHTML = drinks.map(d => `
+          <button class="drink-tile" data-drink="${d.id}" data-icon="${d.icon}" style="--drink-color:${d.color}">
+            <span class="drink-tile-icon">${d.icon}</span>
+            <span class="drink-tile-name">${esc(d.name)}</span>
+            <span class="drink-tile-count">0</span>
+          </button>`).join('');
+    }
+    $$('#drink-grid [data-drink]').forEach(tile => {
+        const countEl = tile.querySelector('.drink-tile-count');
+        const n = me.drinks[tile.dataset.drink] || 0;
+        if (countEl.textContent === String(n)) return;
+        if (n > Number(countEl.textContent)) bump(countEl);
+        countEl.textContent = n;
+    });
 }
 
 function renderGoal(count, goal) {

@@ -11,7 +11,7 @@ export function renderRaceChart(container, series, { start, end }) {
     const hidden = series.length - shown.length;
 
     if (!shown.length) {
-        container.innerHTML = '<div class="chart-empty">Noch keine Biere mit Zeitstempel – das Rennen startet mit dem ersten Bier.</div>';
+        container.innerHTML = '<div class="chart-empty">Noch keine Getränke mit Zeitstempel – das Rennen startet mit dem ersten.</div>';
         return;
     }
 
@@ -46,7 +46,7 @@ export function renderRaceChart(container, series, { start, end }) {
       </div>
       <div class="chart-plot">
         <svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img"
-             aria-label="Kumulierte Biere pro Person über die Zeit">
+             aria-label="Kumulierte Getränke pro Person über die Zeit">
           ${yTicks.map(v => `
             <line class="grid" x1="${PAD.left}" x2="${width - PAD.right}" y1="${sy(v)}" y2="${sy(v)}"/>
             <text class="axis" x="${PAD.left - 8}" y="${sy(v) + 4}" text-anchor="end">${v}</text>`).join('')}

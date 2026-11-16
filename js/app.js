@@ -4,7 +4,9 @@ import { isConfigured } from './config/firebase-config.js';
 import * as service from './services/session-service.js';
 import { getState, setState, subscribe, restoreState, events, me } from './core/store.js';
 import { computeStats } from './core/stats.js';
-import { EVENT, BEERS_PER_CRATE, INVALID_KEY_CHARS, milestoneFor } from './core/constants.js';
+import { readSession } from './core/session-config.js';
+import { lastDrinkEvent } from './core/undo.js';
+import { EVENT, DRINKS, BEERS_PER_CRATE, CRATE_NAME, INVALID_KEY_CHARS, milestoneFor } from './core/constants.js';
 import { $, $$, startLiveTimers } from './ui/dom.js';
 import { showToast } from './ui/toast.js';
 import { celebrate, confetti } from './ui/effects.js';
@@ -12,6 +14,7 @@ import { initSetupView, renderSetupView } from './ui/views/setup-view.js';
 import { initCounterView, renderCounterView } from './ui/views/counter-view.js';
 import { initDashboardView, renderDashboardView } from './ui/views/dashboard-view.js';
 import { initStatsView, renderStatsView } from './ui/views/stats-view.js';
+import { initLegend } from './ui/legend.js';
 
 const VIEWS = {
     setup:     renderSetupView,
@@ -76,28 +79,33 @@ function notifyChanges(data) {
     }
 
     const myName = getState().player;
+    const { main } = stats;
     for (const [key, e] of Object.entries(all)) {
         if (seenEvents.has(key)) continue;
         seenEvents.add(key);
-        if (e.type !== EVENT.BEER) continue;
+        if (e.type !== EVENT.DRINK) continue;
+        // Gemischter Abend: nur eigene Meilensteine, kein Vergleich mit anderen
+        if (!main && e.player !== myName) continue;
 
-        const count = stats.byName[e.player]?.beers ?? 0;
-        const text = milestoneFor(count);
+        const count = stats.byName[e.player]?.count ?? 0;
+        const text = milestoneFor(count, main?.id ?? null);
         if (!text) continue;
+        const icon = (main || DRINKS[e.drink] || DRINKS.beer).icon;
+        const unit = main ? main.name : 'Getränk';
         if (e.player === myName && count === 1) {
-            showToast(`🍺 ${text}`);
+            showToast(`${icon} ${text}`);
             confetti({ count: 60, duration: 1500 });
         } else if (e.player === myName) {
-            celebrate({ big: count, title: `${count}. Bier`, subtitle: text });
+            celebrate({ big: count, title: `${count}. ${unit}`, subtitle: text });
         } else if (count >= 5) {
-            showToast(`🎉 ${e.player}: ${count}. Bier!`, 3000);
+            showToast(`🎉 ${e.player}: ${count}. ${unit}!`, 3000);
         }
     }
 
-    if (stats.totals.crates > lastCrates) {
+    if (stats.totals.crates !== null && stats.totals.crates > lastCrates) {
         celebrate({
             big: '📦',
-            title: `Kasten Nr. ${stats.totals.crates} ist leer!`,
+            title: `${CRATE_NAME} Nr. ${stats.totals.crates} ist leer!`,
             subtitle: `${stats.totals.crates * BEERS_PER_CRATE} Bier zusammen`,
         });
     }
@@ -130,9 +138,9 @@ const safe = fn => async (...args) => {
 };
 
 const actions = {
-    create: safe(async name => {
+    create: safe(async (name, config) => {
         if (!requireConfig()) return null;
-        const id = await service.createSession(name);
+        const id = await service.createSession(name, config);
         setState({ session: { id, name }, data: null });
         connect(getState().session);
         showToast(`Session erstellt: ${id}`);
@@ -168,9 +176,9 @@ const actions = {
         showToast('Session verlassen');
     },
 
-    addBeer: safe(async () => {
+    addDrink: safe(async drinkId => {
         const ctx = requirePlayer();
-        if (ctx) await service.addBeer(ctx.id, ctx.player);
+        if (ctx) await service.addDrink(ctx.id, ctx.player, drinkId);
     }),
 
     addCig: safe(async () => {
@@ -178,19 +186,23 @@ const actions = {
         if (ctx) await service.addCig(ctx.id, ctx.player);
     }),
 
-    undoBeer: safe(async () => {
+    // Ein Getränk: das letzte davon; gemischt: das zuletzt eingetragene
+    undoDrink: safe(async () => {
         const ctx = requirePlayer();
         if (!ctx) return;
-        if (!(me()?.count > 0)) return showToast('Bereits bei 0!');
-        await service.undoLast(ctx.id, ctx.player, EVENT.BEER, events());
-        showToast('Ein Bier zurückgenommen');
+        const session = readSession(getState().data);
+        const main = session.mode === 'single' ? session.drinks[0] : null;
+        const last = lastDrinkEvent(session.events, ctx.player, main?.id ?? null);
+        if (!last) return showToast('Bereits bei 0!');
+        await service.undoDrink(ctx.id, ctx.player, last);
+        showToast(`${(DRINKS[last.drink] || DRINKS.beer).name} zurückgenommen`);
     }),
 
     undoCig: safe(async () => {
         const ctx = requirePlayer();
         if (!ctx) return;
         if (!(me()?.cigs > 0)) return showToast('Bereits bei 0!');
-        await service.undoLast(ctx.id, ctx.player, EVENT.CIG, events());
+        await service.undoCig(ctx.id, ctx.player, events());
         showToast('Eine Kippe zurückgenommen');
     }),
 
@@ -223,6 +235,7 @@ function init() {
     initCounterView(actions);
     initDashboardView();
     initStatsView();
+    initLegend(() => computeStats(getState().data).main);
 
     subscribe(render);
     document.addEventListener('goal-changed', render);

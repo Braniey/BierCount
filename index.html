@@ -50,10 +50,22 @@
         <div class="card">
             <h2 class="card-title">Neue Session</h2>
             <label class="field-label" for="create-name">Session-Name</label>
-            <div class="input-group">
-                <input id="create-name" type="text" placeholder="z.B. Leiterrunde Oktober" maxlength="30" autocomplete="off" />
-                <button id="create-btn" class="btn btn-primary">Start</button>
+            <input id="create-name" class="input" type="text" placeholder="z.B. Leiterrunde Advent" maxlength="30" autocomplete="off" />
+
+            <div class="field-label">Was wird getrunken?</div>
+            <div id="mode-switch" class="segmented" role="radiogroup">
+                <button type="button" role="radio" data-mode="single" aria-checked="true">Ein Getränk</button>
+                <button type="button" role="radio" data-mode="mixed" aria-checked="false">Gemischt</button>
             </div>
+            <div id="drink-choice" class="chips"></div>
+            <p id="mode-hint" class="muted small"></p>
+
+            <div id="beer-size-field">
+                <div class="field-label">Biergröße</div>
+                <div id="beer-size-choice" class="chips"></div>
+            </div>
+
+            <button id="create-btn" class="btn btn-primary btn-block">Start</button>
         </div>
 
         <div class="card">
@@ -73,6 +85,7 @@
                 <div>
                     <div id="current-id" class="session-id"></div>
                     <div id="current-name" class="muted"></div>
+                    <div id="current-drinks" class="current-drinks"></div>
                 </div>
                 <div class="session-actions">
                     <button id="copy-id-btn" class="btn btn-ghost">ID kopieren</button>
@@ -108,12 +121,23 @@
                 <button id="pause-end-btn" class="btn btn-primary">Zurück am Tisch</button>
             </div>
 
-            <div id="my-glass" class="glass-lg"></div>
-            <div id="my-count" class="big-count">0</div>
-            <div class="eyebrow">Bier getrunken</div>
-            <div id="my-pace" class="pace muted"></div>
+            <!-- Ein Getränk -->
+            <div id="counter-single">
+                <div id="my-glass" class="glass-lg"></div>
+                <div id="my-count" class="big-count">0</div>
+                <div id="my-count-label" class="eyebrow">Bier getrunken</div>
+                <div id="my-pace" class="pace muted"></div>
 
-            <button id="beer-btn" class="plus-btn">+ Bier</button>
+                <button id="drink-btn" class="plus-btn">+ Bier</button>
+            </div>
+
+            <!-- Gemischt -->
+            <div id="counter-mixed" hidden>
+                <div id="mixed-total" class="big-count">0</div>
+                <div class="eyebrow">Getränke</div>
+                <div id="mixed-breakdown" class="pace muted"></div>
+                <div id="drink-grid" class="drink-grid"></div>
+            </div>
 
             <div class="action-grid">
                 <button id="cig-btn" class="action-btn">
@@ -134,21 +158,24 @@
             </div>
 
             <div class="undo-row">
-                <button id="undo-beer-btn" class="btn btn-link">− 1 Bier</button>
+                <button id="undo-drink-btn" class="btn btn-link">− 1 Bier</button>
                 <button id="undo-cig-btn" class="btn btn-link">− 1 Kippe</button>
             </div>
 
-            <div class="goal card">
+            <div id="goal-card" class="goal card">
                 <div class="goal-row">
                     <label for="goal-input">Ziel heute</label>
                     <input id="goal-input" type="number" min="1" max="99" value="10" inputmode="numeric" />
-                    <span>Bier</span>
+                    <span id="goal-unit">Bier</span>
                 </div>
                 <div id="goal-bar" class="progress"><span></span></div>
                 <div id="goal-progress" class="goal-progress"></div>
             </div>
 
-            <div id="my-badges" class="badge-row"></div>
+            <div id="counter-badges">
+                <div id="my-badges" class="badge-row"></div>
+                <button class="btn btn-link" data-open-legend>Was bedeuten die Abzeichen?</button>
+            </div>
         </div>
     </section>
 
@@ -166,14 +193,14 @@
                     <div class="eyebrow">Live-Übersicht</div>
                     <h1 id="dash-title" class="dash-title"></h1>
                 </div>
-                <button id="beamer-btn" class="btn btn-ghost">📺 Beamer-Modus</button>
+                <div class="header-actions">
+                    <button class="btn btn-ghost" data-open-legend>ⓘ Legende</button>
+                    <button id="beamer-btn" class="btn btn-ghost">📺 Beamer-Modus</button>
+                </div>
             </header>
 
             <div class="totals">
-                <div class="total-badge">
-                    <div class="total-num" id="total-beers">0</div>
-                    <div class="total-lbl">Bier gesamt</div>
-                </div>
+                <div id="drink-totals" class="drink-totals"></div>
                 <div class="total-badge">
                     <div class="total-num" id="total-liters">0 l</div>
                     <div class="total-lbl">Liter</div>
@@ -182,7 +209,7 @@
                     <div class="total-num" id="total-cigs">0</div>
                     <div class="total-lbl">Kippen</div>
                 </div>
-                <div class="total-badge crate">
+                <div id="crate-badge" class="total-badge crate">
                     <div class="total-lbl">📦 <span id="crate-label"></span></div>
                     <div id="crate-bar" class="progress"><span></span></div>
                 </div>
@@ -210,13 +237,16 @@
         <div id="stats-main" hidden>
             <div id="stat-tiles" class="stat-tiles"></div>
 
-            <div class="card">
-                <h2 class="card-title">Das Bier-Rennen</h2>
+            <div id="race-card" class="card">
+                <h2 id="race-title" class="card-title">Das Bier-Rennen</h2>
                 <div id="race-chart" class="race-chart"></div>
             </div>
 
-            <div class="card">
-                <h2 class="card-title">Titel des Abends</h2>
+            <div id="awards-card" class="card">
+                <div class="card-head">
+                    <h2 class="card-title">Titel des Abends</h2>
+                    <button class="btn btn-link" data-open-legend>ⓘ Legende</button>
+                </div>
                 <div id="awards" class="awards"></div>
             </div>
 
@@ -224,18 +254,7 @@
                 <h2 class="card-title">Alle im Detail</h2>
                 <div class="table-wrap">
                     <table id="stats-table" class="stats-table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Name</th>
-                                <th scope="col">🍺</th>
-                                <th scope="col">Ø/Bier</th>
-                                <th scope="col">🚬</th>
-                                <th scope="col">🚽</th>
-                                <th scope="col">Klo-Zeit</th>
-                                <th scope="col">💨</th>
-                                <th scope="col">Abzeichen</th>
-                            </tr>
-                        </thead>
+                        <thead id="stats-head"></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -243,6 +262,19 @@
         </div>
     </section>
 </main>
+
+<dialog id="legend" class="legend-dialog" aria-labelledby="legend-title">
+    <div class="legend-head">
+        <h2 id="legend-title" class="card-title">Legende</h2>
+        <button class="legend-close" data-close-legend aria-label="Schließen">✕</button>
+    </div>
+    <h3 class="legend-section">Abzeichen</h3>
+    <p class="muted small">Jeder kann sie sich verdienen.</p>
+    <ul id="legend-badges" class="legend-list"></ul>
+    <h3 class="legend-section">Titel des Abends</h3>
+    <p class="muted small">Gehen an den Besten der Runde. Bei Gleichstand wird geteilt, außer beim König.</p>
+    <ul id="legend-awards" class="legend-list"></ul>
+</dialog>
 
 <div id="milestone" class="milestone" aria-live="polite"></div>
 <div id="toast" class="toast" role="status"></div>
