@@ -96,7 +96,7 @@ function renderCards(stats, myName) {
             cards.set(p.name, card);
         }
         const { el, glass } = card;
-        el.classList.toggle('is-leader', p.beers === leader);
+        el.classList.toggle('is-leader', i === 0 && p.beers > 0);
         el.classList.toggle('is-me', p.name === myName);
         el.classList.toggle('is-away', !!p.status);
         el.style.setProperty('--player-color', p.color);

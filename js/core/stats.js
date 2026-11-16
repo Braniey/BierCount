@@ -44,17 +44,38 @@ export function computeStats(data, now = Date.now()) {
     totals.beersPerHour = totals.durationMs > HOUR / 4 ? beers / (totals.durationMs / HOUR) : null;
 
     assignBadges(players, allEvents);
+    const ranking = [...players].sort(compareRanking);
 
     return {
         players,
         byName,
         totals,
-        ranking: [...players].sort((a, b) => b.beers - a.beers || a.joinedAt - b.joinedAt),
-        awards: computeAwards(players),
+        ranking,
+        awards: computeAwards(players, ranking),
         events: allEvents,
         start: Number.isFinite(start) ? start : null,
         end,
     };
+}
+
+// Rangfolge bei Gleichstand:
+// 1. mehr Bier
+// 2. wer die Zahl zuerst erreicht hat (früheres letztes Bier)
+// 3. weniger Klogänge
+// 4. wer früher beigetreten ist
+function compareRanking(a, b) {
+    return b.beers - a.beers
+        || byTime(a.lastBeer, b.lastBeer)
+        || a.toilet.visits - b.toilet.visits
+        || a.joinedAt - b.joinedAt;
+}
+
+// Ohne Zeitstempel (alte Sessions) zählt der Spieler als später
+function byTime(a, b) {
+    if (a === b) return 0;
+    if (a === null) return 1;
+    if (b === null) return -1;
+    return a - b;
 }
 
 function buildPlayer(p, colorIndex, allEvents, now) {
@@ -127,8 +148,8 @@ function hasWindow(times, n, windowMs) {
     return false;
 }
 
-// Titel des Abends – bei Gleichstand teilen sich alle den Titel
-function computeAwards(players) {
+// Titel des Abends – bei Gleichstand teilen sich alle den Titel (außer Bierkönig)
+function computeAwards(players, ranking) {
     const award = (icon, title, candidates, value, format, lowerIsBetter = false) => {
         if (!candidates.length) return null;
         const best = candidates.reduce((acc, p) => {
@@ -141,8 +162,10 @@ function computeAwards(players) {
     };
 
     return [
-        award('👑', 'Bierkönig', players.filter(p => p.beers > 0),
-            p => p.beers, v => `${v} Bier`),
+        // Bierkönig ist immer genau die #1 der Rangliste
+        ranking[0]?.beers > 0
+            ? { icon: '👑', title: 'Bierkönig', winners: [ranking[0].name], detail: `${ranking[0].beers} Bier` }
+            : null,
         award('⚡', 'Schnellster Trinker', players.filter(p => p.beerTimes.length >= 3),
             p => Math.round(p.avgIntervalMin), v => `Ø ${v} min pro Bier`, true),
         award('🚬', 'Kettenraucher', players.filter(p => p.cigs > 0),
