@@ -131,9 +131,9 @@ const safe = fn => async (...args) => {
 };
 
 const actions = {
-    create: safe(async name => {
+    create: safe(async (name, config) => {
         if (!requireConfig()) return null;
-        const id = await service.createSession(name);
+        const id = await service.createSession(name, config);
         setState({ session: { id, name }, data: null });
         connect(getState().session);
         showToast(`Session erstellt: ${id}`);

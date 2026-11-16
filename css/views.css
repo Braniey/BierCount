@@ -414,3 +414,4 @@ body.beamer #beamer-btn:hover { opacity: 1; }
 .card-head .btn-link { padding: 4px 0; }
 body.beamer .header-actions .btn { opacity: .25; }
 body.beamer .header-actions .btn:hover { opacity: 1; }
+.current-drinks { margin-top: 4px; color: var(--text-2); font-size: .9rem; }

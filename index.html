@@ -50,10 +50,22 @@
         <div class="card">
             <h2 class="card-title">Neue Session</h2>
             <label class="field-label" for="create-name">Session-Name</label>
-            <div class="input-group">
-                <input id="create-name" type="text" placeholder="z.B. Leiterrunde Oktober" maxlength="30" autocomplete="off" />
-                <button id="create-btn" class="btn btn-primary">Start</button>
+            <input id="create-name" class="input" type="text" placeholder="z.B. Leiterrunde Advent" maxlength="30" autocomplete="off" />
+
+            <div class="field-label">Was wird getrunken?</div>
+            <div id="mode-switch" class="segmented" role="radiogroup">
+                <button type="button" role="radio" data-mode="single" aria-checked="true">Ein Getränk</button>
+                <button type="button" role="radio" data-mode="mixed" aria-checked="false">Gemischt</button>
             </div>
+            <div id="drink-choice" class="chips"></div>
+            <p id="mode-hint" class="muted small"></p>
+
+            <div id="beer-size-field">
+                <div class="field-label">Biergröße</div>
+                <div id="beer-size-choice" class="chips"></div>
+            </div>
+
+            <button id="create-btn" class="btn btn-primary btn-block">Start</button>
         </div>
 
         <div class="card">
@@ -73,6 +85,7 @@
                 <div>
                     <div id="current-id" class="session-id"></div>
                     <div id="current-name" class="muted"></div>
+                    <div id="current-drinks" class="current-drinks"></div>
                 </div>
                 <div class="session-actions">
                     <button id="copy-id-btn" class="btn btn-ghost">ID kopieren</button>

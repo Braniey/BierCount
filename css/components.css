@@ -262,3 +262,39 @@
 
 /* Abzeichen öffnen beim Antippen die Legende */
 .badge, .p-badges span, .badges-cell span { cursor: pointer; }
+
+/* ── Auswahl-Chips und Umschalter ───────────────────────── */
+.btn-block { display: block; width: 100%; margin-top: 16px; }
+.segmented {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 4px;
+    margin-bottom: 10px;
+    background: var(--dark);
+    border-radius: var(--radius-s);
+}
+.segmented button {
+    padding: 10px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: var(--muted);
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    transition: background .2s, color .2s;
+}
+.segmented button[aria-checked="true"] { background: var(--amber); color: var(--dark); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.chip {
+    padding: 8px 12px;
+    border: 1.5px solid var(--line);
+    border-radius: 99px;
+    background: var(--dark);
+    color: var(--text-2);
+    font-size: .9rem;
+    cursor: pointer;
+    transition: border-color .2s, background .2s, color .2s;
+}
+.chip.on { border-color: var(--amber); background: rgba(245, 166, 35, .14); color: var(--text); }
