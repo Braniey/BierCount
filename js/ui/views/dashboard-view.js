@@ -1,6 +1,6 @@
 import { $, esc, formatAgo, formatClock, formatTimer, formatDuration, formatNumber } from '../dom.js';
 import { createGlass } from '../glass.js';
-import { EVENT, PAUSE, BEERS_PER_CRATE } from '../../core/constants.js';
+import { EVENT, PAUSE, DRINKS, BEERS_PER_CRATE, CRATE_NAME } from '../../core/constants.js';
 
 const cards = new Map(); // name -> { el, glass }
 let wakeLock = null;
@@ -42,17 +42,32 @@ export function renderDashboardView(state, stats) {
 
     const t = stats.totals;
     $('#dash-title').textContent = state.data?.name || state.session.name;
-    $('#total-beers').textContent = t.beers;
+    $('#dashboard-view [data-open-legend]').hidden = !stats.main;
+    $('#drink-totals').innerHTML = stats.main
+        ? totalBadge(t.count, `${stats.main.name} gesamt`)
+        : stats.drinks.map(d => totalBadge(`${d.icon} ${t.byDrink[d.id]}`, d.name)).join('');
     $('#total-liters').textContent = `${formatNumber(t.liters, 1)} l`;
     $('#total-cigs').textContent = t.cigs;
-    $('#crate-label').textContent = t.crates
-        ? `${t.crates} ${t.crates === 1 ? 'Fässchen' : 'Fässchen'} + ${t.beers % BEERS_PER_CRATE} /${BEERS_PER_CRATE}`
-        : `${t.beers}/${BEERS_PER_CRATE} bis zum Fässchen`;
-    $('#crate-bar').style.setProperty('--pct', t.crateProgress);
+
+    $('#crate-badge').hidden = t.crates === null;
+    if (t.crates !== null) {
+        $('#crate-label').textContent = t.crates
+            ? `${t.crates} ${CRATE_NAME} + ${t.count % BEERS_PER_CRATE}/${BEERS_PER_CRATE}`
+            : `${t.count}/${BEERS_PER_CRATE} bis zum ${CRATE_NAME}`;
+        $('#crate-bar').style.setProperty('--pct', t.crateProgress);
+    }
 
     renderAway(stats);
     renderCards(stats, state.player);
     renderTicker(stats);
+}
+
+function totalBadge(value, label) {
+    return `
+      <div class="total-badge">
+        <div class="total-num">${esc(value)}</div>
+        <div class="total-lbl">${esc(label)}</div>
+      </div>`;
 }
 
 function renderAway(stats) {
@@ -72,9 +87,11 @@ function renderCards(stats, myName) {
     // FLIP: alte Positionen merken, damit Rangwechsel animiert werden
     const before = new Map([...cards].map(([name, c]) => [name, c.el.getBoundingClientRect()]));
 
-    const leader = stats.ranking[0]?.beers > 0 ? stats.ranking[0].beers : null;
-    const maxBeers = Math.max(10, leader || 0);
+    const { main } = stats;
+    const leader = main && stats.ranking[0]?.count > 0 ? stats.ranking[0].count : null;
+    const maxCount = Math.max(10, leader || 0);
     const present = new Set();
+    grid.classList.toggle('mixed', !main);
 
     stats.ranking.forEach((p, i) => {
         present.add(p.name);
@@ -88,7 +105,8 @@ function renderCards(stats, myName) {
               <div class="p-name"></div>
               <div class="mini-glass"></div>
               <div class="p-count"></div>
-              <div class="p-count-lbl">Bier</div>
+              <div class="p-count-lbl"></div>
+              <div class="p-drinks"></div>
               <div class="p-meta"></div>
               <div class="p-status"></div>
               <div class="p-badges"></div>`;
@@ -96,28 +114,36 @@ function renderCards(stats, myName) {
             cards.set(p.name, card);
         }
         const { el, glass } = card;
-        el.classList.toggle('is-leader', i === 0 && p.beers > 0);
+        el.classList.toggle('is-leader', !!main && i === 0 && p.count > 0);
         el.classList.toggle('is-me', p.name === myName);
         el.classList.toggle('is-away', !!p.status);
         el.style.setProperty('--player-color', p.color);
         el.querySelector('.p-rank').textContent = `#${i + 1}`;
         el.querySelector('.p-name').textContent = p.name;
 
-        const countEl = el.querySelector('.p-count');
-        if (countEl.textContent !== String(p.beers)) {
-            if (countEl.textContent) {
-                countEl.classList.remove('bump');
-                void countEl.offsetWidth;
-                countEl.classList.add('bump');
+        if (main) {
+            const countEl = el.querySelector('.p-count');
+            if (countEl.textContent !== String(p.count)) {
+                if (countEl.textContent) {
+                    countEl.classList.remove('bump');
+                    void countEl.offsetWidth;
+                    countEl.classList.add('bump');
+                }
+                countEl.textContent = p.count;
             }
-            countEl.textContent = p.beers;
+            el.querySelector('.p-count-lbl').textContent = main.name;
+            glass.set(p.count, maxCount, main);
+        } else {
+            const parts = stats.drinks.filter(d => p.drinks[d.id]).map(d => `<span>${d.icon}${p.drinks[d.id]}</span>`);
+            el.querySelector('.p-drinks').innerHTML = parts.join('') || '<span class="muted">noch nichts</span>';
         }
-        glass.set(p.beers, maxBeers);
 
+        const last = p.lastDrink;
+        const lastIcon = !main && last ? `${DRINKS[last.drink]?.icon || ''} ` : '';
         el.querySelector('.p-meta').innerHTML = `
           <span title="Zigaretten">🚬 ${p.cigs}</span>
           <span title="Klogänge">🚽 ${p.toilet.visits}</span>
-          ${p.lastBeer ? `<span class="muted" data-ago="${p.lastBeer}">${formatAgo(p.lastBeer)}</span>` : ''}`;
+          ${last ? `<span class="muted">${lastIcon}<span data-ago="${last.ts}">${formatAgo(last.ts)}</span></span>` : ''}`;
 
         const status = p.status && PAUSE[p.status.type];
         el.querySelector('.p-status').innerHTML = status
@@ -148,7 +174,10 @@ function renderCards(stats, myName) {
 }
 
 const TICKER_TEXT = {
-    [EVENT.BEER]:   e => `🍺 <b>${esc(e.player)}</b> hat ein Bier aufgemacht`,
+    [EVENT.DRINK]:  e => {
+        const d = DRINKS[e.drink] || DRINKS.beer;
+        return `${d.icon} <b>${esc(e.player)}</b> hat ${d.acc} aufgemacht`;
+    },
     [EVENT.CIG]:    e => `🚬 <b>${esc(e.player)}</b> raucht eine`,
     [EVENT.TOILET]: e => `🚽 <b>${esc(e.player)}</b> war ${formatDuration(e.end - e.ts)} auf Klo`,
     [EVENT.SMOKE]:  e => `💨 <b>${esc(e.player)}</b> war ${formatDuration(e.end - e.ts)} rauchen`,
