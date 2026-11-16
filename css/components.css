@@ -190,7 +190,8 @@
 
 .glass.no-foam .glass-foam,
 .glass.is-empty .glass-foam,
-.glass.is-empty .glass-bubbles { opacity: 0; }
+.glass.is-empty .glass-bubbles,
+.glass.no-bubbles .glass-bubbles { opacity: 0; }
 .glass.is-empty .glass-empty   { opacity: 1; }
 .glass.is-empty .glass-outline,
 .glass.is-empty .glass-handle  { opacity: .45; }

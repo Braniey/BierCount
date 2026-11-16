@@ -44,6 +44,7 @@ export function createGlass(container, { bubbles = true } = {}) {
             container.style.setProperty('--beer-color', liquidColor(count, drink));
             container.classList.toggle('is-empty', count === 0);
             container.classList.toggle('no-foam', !drink.foam);
+            container.classList.toggle('no-bubbles', !drink.bubbles);
         },
         slosh() {
             container.classList.remove('slosh');

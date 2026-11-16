@@ -13,21 +13,21 @@ export const PAUSE = {
 };
 
 // Getränke-Katalog. size in Litern; Bier hat keine feste Größe, die kommt
-// aus der Session-Einstellung (beerSize).
+// aus der Session-Einstellung (beerSize). foam/bubbles steuern das Glas.
 export const DRINKS = {
-    beer:      { id: 'beer',      name: 'Bier',          icon: '🍺', size: null, color: '#f5a623', foam: true,
+    beer:      { id: 'beer',      name: 'Bier',          icon: '🍺', size: null, color: '#f5a623', foam: true, bubbles: true,
                  acc: 'ein Bier',        first: 'Erstes Bier',      king: 'Bierkönig' },
-    gluehwein: { id: 'gluehwein', name: 'Glühwein',      icon: '☕', size: 0.2,  color: '#9b1d2e', foam: false,
+    gluehwein: { id: 'gluehwein', name: 'Glühwein',      icon: '☕', size: 0.2,  color: '#9b1d2e', foam: false, bubbles: false,
                  acc: 'einen Glühwein',  first: 'Erster Glühwein',  king: 'Glühweinkönig' },
-    aperol:    { id: 'aperol',    name: 'Aperol Spritz', icon: '🍹', size: 0.2,  color: '#ff6a13', foam: false,
+    aperol:    { id: 'aperol',    name: 'Aperol Spritz', icon: '🍹', size: 0.2,  color: '#ff6a13', foam: false, bubbles: true,
                  acc: 'einen Aperol',    first: 'Erster Aperol',    king: 'Aperolkönig' },
-    wein:      { id: 'wein',      name: 'Wein',          icon: '🍷', size: 0.2,  color: '#7a1530', foam: false,
+    wein:      { id: 'wein',      name: 'Wein',          icon: '🍷', size: 0.2,  color: '#7a1530', foam: false, bubbles: false,
                  acc: 'einen Wein',      first: 'Erster Wein',      king: 'Weinkönig' },
-    sekt:      { id: 'sekt',      name: 'Sekt',          icon: '🥂', size: 0.1,  color: '#f1d97a', foam: false,
+    sekt:      { id: 'sekt',      name: 'Sekt',          icon: '🥂', size: 0.1,  color: '#f1d97a', foam: false, bubbles: true,
                  acc: 'einen Sekt',      first: 'Erster Sekt',      king: 'Sektkönig' },
-    schnaps:   { id: 'schnaps',   name: 'Schnaps',       icon: '🥃', size: 0.02, color: '#d9a35b', foam: false,
+    schnaps:   { id: 'schnaps',   name: 'Schnaps',       icon: '🥃', size: 0.02, color: '#d9a35b', foam: false, bubbles: false,
                  acc: 'einen Schnaps',   first: 'Erster Schnaps',   king: 'Schnapskönig' },
-    longdrink: { id: 'longdrink', name: 'Longdrink',     icon: '🍸', size: 0.3,  color: '#4fb3d9', foam: false,
+    longdrink: { id: 'longdrink', name: 'Longdrink',     icon: '🍸', size: 0.3,  color: '#4fb3d9', foam: false, bubbles: true,
                  acc: 'einen Longdrink', first: 'Erster Longdrink', king: 'Longdrinkkönig' },
 };
 export const DRINK_ORDER = ['beer', 'gluehwein', 'aperol', 'wein', 'sekt', 'schnaps', 'longdrink'];
