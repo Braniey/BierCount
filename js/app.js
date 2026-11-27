@@ -110,7 +110,32 @@ function connect(session) {
         }
         notifyChanges(data);
         setState({ data });
+        ensureOwnName(session.id, data);
     });
+}
+
+// Gespeicherter Name ohne Handy-Kennung (z. B. von vor der Absicherung oder
+// nach dem Freigeben): automatisch für dieses Handy holen. Gehört er inzwischen
+// einem anderen Handy, zurück ins Setup.
+let claiming = null;
+async function ensureOwnName(sid, data) {
+    const { player, uid } = getState();
+    const entry = player && data.players?.[player];
+    if (!entry || !uid || entry.uid === uid || claiming === `${sid}/${player}`) return;
+    claiming = `${sid}/${player}`;
+    try {
+        if (!entry.uid) {
+            await service.joinSession(sid, player, uid);
+        } else {
+            setState({ player: null });
+            showToast(`${player} gehört gerade einem anderen Handy – bitte im Setup neu wählen`, 3500);
+            switchTab('setup');
+        }
+    } catch (err) {
+        console.error(err);
+    } finally {
+        claiming = null;
+    }
 }
 
 // ── Benachrichtigungen bei neuen Events (Meilensteine etc.) ─────
@@ -208,7 +233,10 @@ const safe = fn => async (...args) => {
     try { return await fn(...args); }
     catch (err) {
         console.error(err);
-        showToast('⚠️ Speichern fehlgeschlagen');
+        const denied = String(err?.code || err?.message || '').toUpperCase().includes('PERMISSION_DENIED');
+        showToast(denied
+            ? '⚠️ Keine Berechtigung – sind in Firebase die aktuellen Regeln eingefügt?'
+            : '⚠️ Speichern fehlgeschlagen', 4000);
     }
 };
 
