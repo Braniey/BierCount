@@ -8,6 +8,7 @@ const state = {
     session: null,  // { id, name }
     player:  null,  // Name des eigenen Spielers
     data:    null,  // Roh-Snapshot von sessions/{id}
+    uid:     null,  // anonyme Firebase-Kennung dieses Handys
 };
 
 const listeners = new Set();

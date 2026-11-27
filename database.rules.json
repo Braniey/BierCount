@@ -1,12 +1,63 @@
 {
   "rules": {
     "sessions": {
-      "$session_id": {
-        ".read": true,
-        ".write": true,
+      "$sid": {
+        ".read": "auth != null",
+        ".write": "auth != null && !data.exists() && newData.child('owner').val() === auth.uid",
+        ".validate": "newData.hasChildren(['name', 'createdAt'])",
+
+        "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 30" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "owner": { ".validate": "newData.isString()" },
+        "config": {
+          "mode": { ".validate": "newData.val() === 'single' || newData.val() === 'mixed'" },
+          "drinks": {
+            "$i": { ".validate": "newData.isString() && newData.val().length <= 20" }
+          },
+          "beerSize": { ".validate": "newData.val() === 0.2 || newData.val() === 0.3 || newData.val() === 0.5" },
+          "$other": { ".validate": false }
+        },
+
+        "players": {
+          "$name": {
+            ".write": "auth != null && newData.exists() && $name.length <= 20 && newData.child('uid').val() === auth.uid && (!data.child('uid').exists() || data.child('uid').val() === auth.uid)",
+            ".validate": "newData.hasChild('joinedAt')",
+
+            "uid": {
+              ".write": "auth != null && !newData.exists() && root.child('sessions/' + $sid + '/owner').val() === auth.uid",
+              ".validate": "newData.isString()"
+            },
+            "joinedAt": { ".validate": "newData.isNumber()" },
+            "count": { ".validate": "newData.isNumber()" },
+            "cigs": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 1000" },
+            "drinks": {
+              "$drink": { ".validate": "$drink.length <= 20 && newData.isNumber() && newData.val() > -1000 && newData.val() < 1000" }
+            },
+            "status": {
+              "type": { ".validate": "newData.val() === 'toilet' || newData.val() === 'smoke'" },
+              "since": { ".validate": "newData.isNumber()" },
+              "$other": { ".validate": false }
+            },
+            "$other": { ".validate": false }
+          }
+        },
+
         "events": {
-          ".indexOn": ["player", "ts"]
-        }
+          ".indexOn": ["player", "ts"],
+          "$eid": {
+            ".write": "auth != null && (newData.exists() ? root.child('sessions/' + $sid + '/players/' + newData.child('player').val() + '/uid').val() === auth.uid : root.child('sessions/' + $sid + '/players/' + data.child('player').val() + '/uid').val() === auth.uid)",
+            ".validate": "newData.hasChildren(['type', 'player', 'ts'])",
+
+            "type": { ".validate": "newData.val() === 'drink' || newData.val() === 'cig' || newData.val() === 'toilet' || newData.val() === 'smoke'" },
+            "player": { ".validate": "newData.isString()" },
+            "drink": { ".validate": "newData.isString() && newData.val().length <= 20" },
+            "ts": { ".validate": "newData.isNumber()" },
+            "end": { ".validate": "newData.isNumber()" },
+            "$other": { ".validate": false }
+          }
+        },
+
+        "$other": { ".validate": false }
       }
     }
   }

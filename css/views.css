@@ -465,3 +465,10 @@ body.beamer .header-actions .btn:hover { opacity: 1; }
 }
 .p-drinks .muted { font-family: var(--font-body); font-size: .9rem; }
 body.beamer .p-drinks { font-size: 2.2rem; }
+
+/* Wer-bist-du-Liste: Besitz und Freigeben */
+.player-row { display: flex; gap: 6px; }
+.player-row .player-pick { flex: 1; min-width: 0; }
+.player-pick.is-taken { opacity: .6; }
+.pick-name small { display: block; font-weight: 400; font-size: .75rem; color: var(--muted); }
+.release-btn { padding: 8px 10px; font-size: .85rem; }

@@ -58,6 +58,7 @@ export function computeStats(data, now = Date.now()) {
         mode,
         drinks,
         main,
+        owner: session.owner,
         players,
         byName,
         totals,
@@ -110,6 +111,7 @@ function buildPlayer(p, colorIndex, { main, drinks, events, now }) {
 
     return {
         name: p.name,
+        uid: p.uid,
         drinks: counts,
         // single: Anzahl des Abend-Getränks, mixed: Summe aller Getränke
         count: sum(Object.values(counts)),

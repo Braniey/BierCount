@@ -9,7 +9,7 @@ const choice = {
     beerSize: DEFAULT_BEER_SIZE,
 };
 
-// actions: { create(name, config), join(id, player), selectPlayer(name), leave() }
+// actions: { create(name, config), join(id, player), selectPlayer(name), release(name), leave() }
 export function initSetupView(actions) {
     const params = new URLSearchParams(location.search);
     if (params.get('s')) $('#join-id').value = params.get('s').toUpperCase();
@@ -94,6 +94,14 @@ export function initSetupView(actions) {
     });
 
     $('#player-list').addEventListener('click', e => {
+        const release = e.target.closest('[data-release]');
+        if (release) {
+            const name = release.dataset.release;
+            if (confirm(`${name} freigeben? Danach kann sich jemand anderes den Namen holen, z. B. auf einem neuen Handy.`)) {
+                actions.release(name);
+            }
+            return;
+        }
         const item = e.target.closest('[data-player]');
         if (item) actions.selectPlayer(item.dataset.player);
     });
@@ -122,13 +130,22 @@ export function renderSetupView(state, stats) {
     if (!$('#join-id').value) $('#join-id').value = state.session.id;
     if (!$('#join-player').value && state.player) $('#join-player').value = state.player;
 
+    const isOwner = !!state.uid && stats.owner === state.uid;
     const list = stats.players;
     $('#player-list').innerHTML = list.length
-        ? list.map(p => `
-            <button class="player-pick ${p.name === state.player ? 'is-me' : ''}" data-player="${esc(p.name)}">
-              <span class="dot" style="background:${p.color}"></span>
-              <span class="pick-name">${esc(p.name)}</span>
-              <span class="pick-count">${stats.main ? `${p.count} ${stats.main.icon}` : `${p.count} Getränke`} · ${p.cigs} 🚬</span>
-            </button>`).join('')
+        ? list.map(p => {
+            const mine = !!p.uid && p.uid === state.uid;
+            const taken = !!p.uid && !mine;
+            const hint = mine ? 'Das bist du' : taken ? 'besetzt' : 'frei – antippen';
+            return `
+            <div class="player-row">
+              <button class="player-pick ${mine ? 'is-me' : ''} ${taken ? 'is-taken' : ''}" data-player="${esc(p.name)}">
+                <span class="dot" style="background:${p.color}"></span>
+                <span class="pick-name">${esc(p.name)}<small>${hint}</small></span>
+                <span class="pick-count">${stats.main ? `${p.count} ${stats.main.icon}` : `${p.count} Getränke`} · ${p.cigs} 🚬</span>
+              </button>
+              ${isOwner && taken ? `<button class="btn btn-ghost release-btn" data-release="${esc(p.name)}">Freigeben</button>` : ''}
+            </div>`;
+        }).join('')
         : '<div class="muted small">Noch niemand drin – trag dich oben ein.</div>';
 }

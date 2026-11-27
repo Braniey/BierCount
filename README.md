@@ -81,11 +81,13 @@ Kein Build-Schritt nötig: Die Dateien werden als native ES-Module direkt vom Br
 ```
 sessions/{SESSIONID}
   name, createdAt
+  owner        Kennung (uid) des Handys, das die Session erstellt hat
   config
     mode       "single" | "mixed"
     drinks     ["beer"] bzw. ["beer", "schnaps", …]
     beerSize   0.2 | 0.3 | 0.5          (nur wenn Bier dabei ist)
   players/{Name}
+    uid        Kennung des Handys, dem der Name gehört
     drinks     { beer: 3, schnaps: 1 }
     cigs       Anzahl Zigaretten
     joinedAt
@@ -100,6 +102,16 @@ Zähler und Event werden immer zusammen in einem atomaren Update geschrieben (`i
 Die `config` wird beim Erstellen geschrieben und danach nicht mehr geändert.
 Alte Sessions ohne `config` werden als Bier-Abend (0,5 l) angezeigt.
 
+### Wer darf was?
+
+Jedes Handy meldet sich beim Öffnen unsichtbar bei Firebase an (anonyme Anmeldung, kein Passwort) und bekommt eine eigene Kennung. Die Regeln in [`database.rules.json`](database.rules.json) sorgen dafür, dass
+
+- nur angemeldete Handys lesen und schreiben können,
+- jeder nur **seinen eigenen** Namen zählen, pausieren und zurücknehmen kann,
+- Session-Name und Getränke nach dem Erstellen fest sind und niemand eine Session löschen kann,
+- nur gültige Werte gespeichert werden (Zahlen, bekannte Ereignisse, Namen bis 20 Zeichen),
+- nur der **Ersteller** einen Namen wieder freigeben kann (z. B. wenn jemand das Handy wechselt).
+
 ## Setup
 
 ### 1. Firebase-Projekt
@@ -109,11 +121,16 @@ Alte Sessions ohne `config` werden als Bier-Abend (0,5 l) angezeigt.
 3. **Projekteinstellungen → Deine Apps → `</>` Web-App** registrieren und die Config kopieren
 4. Die Werte in **`js/config/firebase-config.js`** eintragen
 
-### 2. Sicherheitsregeln
+### 2. Anonyme Anmeldung
+
+**Build → Authentication → Jetzt starten → Sign-in method → Anonym → Aktivieren → Speichern**
+
+### 3. Sicherheitsregeln
 
 In Firebase → Realtime Database → **Regeln** den Inhalt von [`database.rules.json`](database.rules.json) einfügen und veröffentlichen.
+Erst machen, wenn die aktuelle Version der Website online ist – ältere Versionen melden sich nicht an und würden ausgesperrt.
 
-### 3. GitHub Pages
+### 4. GitHub Pages
 
 **Settings → Pages → Deploy from a branch** → `main` / `(root)`. Nach ca. 1 Minute ist die Seite live.
 
@@ -133,3 +150,5 @@ Dann <http://localhost:8000> öffnen.
 2. Eigenen Namen eingeben → **Beitreten**
 3. **Link teilen**: Die anderen öffnen den Link, geben ihren Namen ein und sind drin.
 4. **Zähler** am Handy, **Dashboard** am Laptop oder Beamer, **Statistik** für die Auswertung
+
+**Handy gewechselt oder Akku leer?** Der Name gehört dem Handy, mit dem man beigetreten ist. Der Ersteller der Session tippt im Setup unter „Wer bist du?“ beim Namen auf **Freigeben**. Danach kann man den Namen auf dem neuen Handy einfach wieder antippen. Der Zählerstand bleibt erhalten.

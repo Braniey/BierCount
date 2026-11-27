@@ -2,6 +2,7 @@
 
 import { isConfigured } from './config/firebase-config.js';
 import * as service from './services/session-service.js';
+import { signIn } from './services/firebase.js';
 import { getState, setState, subscribe, restoreState, events, me } from './core/store.js';
 import { computeStats } from './core/stats.js';
 import { readSession } from './core/session-config.js';
@@ -120,8 +121,28 @@ function requireConfig() {
     return false;
 }
 
+// Wartet auf die anonyme Anmeldung; schlägt sie fehl, erklärt ein Banner warum
+let authReady = null;
+function ensureSignedIn() {
+    authReady ??= signIn()
+        .then(uid => { setState({ uid }); return uid; })
+        .catch(err => {
+            console.error(err);
+            $('#auth-banner').hidden = false;
+            authReady = null;
+            throw err;
+        });
+    return authReady;
+}
+
 function requirePlayer() {
-    const { session, player } = getState();
+    const { session, player, data, uid } = getState();
+    const owner = data?.players?.[player]?.uid;
+    if (session && player && owner && owner !== uid) {
+        showToast('Der Name gehört gerade einem anderen Handy');
+        switchTab('setup');
+        return null;
+    }
     if (session && player) return { id: session.id, player };
     showToast('Erst Session beitreten!');
     switchTab('setup');
@@ -137,10 +158,13 @@ const safe = fn => async (...args) => {
     }
 };
 
+const TAKEN_MESSAGE = 'Der Name gehört einem anderen Handy. Der Ersteller der Session kann ihn freigeben.';
+
 const actions = {
     create: safe(async (name, config) => {
         if (!requireConfig()) return null;
-        const id = await service.createSession(name, config);
+        const uid = await ensureSignedIn();
+        const id = await service.createSession(name, config, uid);
         setState({ session: { id, name }, data: null });
         connect(getState().session);
         showToast(`Session erstellt: ${id}`);
@@ -153,10 +177,12 @@ const actions = {
         if (!player) return showToast('Namen eingeben!');
         if (INVALID_KEY_CHARS.test(player)) return showToast('Name darf . # $ [ ] / nicht enthalten');
 
+        const uid = await ensureSignedIn();
         const data = await service.fetchSession(id);
         if (!data) return showToast('Session nicht gefunden!');
 
-        await service.joinSession(id, player);
+        const result = await service.joinSession(id, player, uid);
+        if (result === 'taken') return showToast(TAKEN_MESSAGE, 3500);
         const sameSession = getState().session?.id === id;
         setState({ session: { id, name: data.name }, player });
         if (!sameSession) connect(getState().session);
@@ -164,11 +190,23 @@ const actions = {
         switchTab('counter');
     }),
 
-    selectPlayer(name) {
+    selectPlayer: safe(async name => {
+        const { session } = getState();
+        if (!session) return;
+        const uid = await ensureSignedIn();
+        const result = await service.joinSession(session.id, name, uid);
+        if (result === 'taken') return showToast(TAKEN_MESSAGE, 3500);
         setState({ player: name });
         showToast(`Eingeloggt als ${name}`);
         switchTab('counter');
-    },
+    }),
+
+    release: safe(async name => {
+        const { session } = getState();
+        if (!session) return;
+        await service.releasePlayer(session.id, name);
+        showToast(`${name} ist freigegeben`);
+    }),
 
     leave() {
         connect(null);
@@ -224,7 +262,7 @@ const actions = {
 };
 
 // ── Start ────────────────────────────────────────────────────────
-function init() {
+async function init() {
     $('#config-banner').hidden = isConfigured;
 
     $$('nav [data-tab]').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
@@ -244,10 +282,11 @@ function init() {
     restoreState();
     const { session, player } = getState();
     const invited = new URLSearchParams(location.search).get('s');
-    if (session && isConfigured && (!invited || invited.toUpperCase() === session.id)) {
-        connect(session);
-    }
     switchTab(session && player && !invited ? 'counter' : 'setup');
+
+    if (!isConfigured) return;
+    try { await ensureSignedIn(); } catch { return; }
+    if (session && (!invited || invited.toUpperCase() === session.id)) connect(session);
 }
 
 init();
