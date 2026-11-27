@@ -78,8 +78,10 @@ export function confetti({ count = 120, duration = 2200 } = {}) {
 const queue = [];
 let showing = false;
 
-export function celebrate({ big, title, subtitle = '' }) {
-    queue.push({ big, title, subtitle });
+// confetti: Konfetti dazu; action: Text eines Knopfs zum Schließen;
+// duration: wie lange es ohne Antippen stehen bleibt
+export function celebrate({ big, title, subtitle = '', confetti: withConfetti = true, action = null, duration = 2600 }) {
+    queue.push({ big, title, subtitle, withConfetti, action, duration });
     if (!showing) nextCelebration();
 }
 
@@ -94,9 +96,10 @@ function nextCelebration() {
         <div class="milestone-big">${esc(item.big)}</div>
         <div class="milestone-title">${esc(item.title)}</div>
         ${item.subtitle ? `<div class="milestone-sub">${esc(item.subtitle)}</div>` : ''}
+        ${item.action ? `<button class="btn btn-primary milestone-action">${esc(item.action)}</button>` : ''}
       </div>`;
     el.classList.add('show');
-    confetti();
+    if (item.withConfetti) confetti();
     vibrate([40, 60, 40]);
 
     const close = () => {
@@ -105,6 +108,6 @@ function nextCelebration() {
         clearTimeout(timer);
         setTimeout(nextCelebration, 350);
     };
-    const timer = setTimeout(close, 2600);
+    const timer = setTimeout(close, item.duration);
     el.addEventListener('click', close);
 }

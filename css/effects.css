@@ -80,3 +80,5 @@
         transition-duration: .01ms !important;
     }
 }
+
+.milestone-action { margin-top: 20px; font-size: 1.3rem; padding: 12px 32px; }
