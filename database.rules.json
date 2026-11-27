@@ -57,6 +57,65 @@
           }
         },
 
+        "games": {
+          "$gid": {
+            ".write": "auth != null && !data.exists() && newData.child('status').val() === 'lobby' && root.child('sessions/' + $sid + '/players/' + newData.child('host').val() + '/uid').val() === auth.uid",
+            ".validate": "newData.hasChildren(['type', 'host', 'status', 'createdAt'])",
+
+            "type": { ".validate": "newData.isString() && newData.val().length <= 30" },
+            "host": { ".validate": "newData.isString()" },
+            "createdAt": { ".validate": "newData.isNumber()" },
+
+            "status": {
+              ".write": "auth != null && data.exists() && ((root.child('sessions/' + $sid + '/players/' + data.parent().child('host').val() + '/uid').val() === auth.uid && ((data.val() === 'lobby' && newData.val() === 'running') || ((data.val() === 'lobby' || data.val() === 'running') && newData.val() === 'aborted'))) || (data.val() === 'running' && newData.val() === 'finished' && data.parent().child('order').hasChild(newData.parent().child('endedBy').val() + '') && root.child('sessions/' + $sid + '/players/' + newData.parent().child('endedBy').val() + '/uid').val() === auth.uid))",
+              ".validate": "newData.val() === 'lobby' || newData.val() === 'running' || newData.val() === 'finished' || newData.val() === 'aborted'"
+            },
+            "startedAt": {
+              ".write": "auth != null && !data.exists() && newData.parent().child('status').val() === 'running'",
+              ".validate": "newData.isNumber()"
+            },
+            "seed": {
+              ".write": "auth != null && !data.exists() && newData.parent().child('status').val() === 'running'",
+              ".validate": "newData.isNumber()"
+            },
+            "order": {
+              ".write": "auth != null && !data.exists() && newData.parent().child('status').val() === 'running' && root.child('sessions/' + $sid + '/players/' + data.parent().child('host').val() + '/uid').val() === auth.uid",
+              "$p": { ".validate": "newData.isNumber() && newData.parent().parent().child('players').hasChild($p)" }
+            },
+            "endedAt": {
+              ".write": "auth != null && !data.exists() && newData.parent().child('status').val() === 'finished'",
+              ".validate": "newData.isNumber()"
+            },
+            "endedBy": {
+              ".write": "auth != null && !data.exists() && newData.parent().child('status').val() === 'finished'",
+              ".validate": "newData.isString()"
+            },
+
+            "players": {
+              "$p": {
+                ".write": "auth != null && data.parent().parent().child('status').val() === 'lobby' && $p !== data.parent().parent().child('host').val() && root.child('sessions/' + $sid + '/players/' + $p + '/uid').val() === auth.uid",
+                ".validate": "newData.child('joinedAt').isNumber() && root.child('sessions/' + $sid + '/players/' + $p + '/uid').val() === auth.uid",
+                "joinedAt": { ".validate": true },
+                "$other": { ".validate": false }
+              }
+            },
+
+            "moves": {
+              "$mid": {
+                ".write": "auth != null && !data.exists() && newData.exists() && root.child('sessions/' + $sid + '/games/' + $gid + '/status').val() === 'running' && root.child('sessions/' + $sid + '/games/' + $gid + '/order').hasChild(newData.child('player').val() + '') && root.child('sessions/' + $sid + '/players/' + newData.child('player').val() + '/uid').val() === auth.uid",
+                ".validate": "newData.hasChildren(['player', 'type', 'ts'])",
+                "player": { ".validate": "newData.isString()" },
+                "type": { ".validate": "newData.isString() && newData.val().length <= 30" },
+                "ts": { ".validate": "newData.isNumber()" },
+                "data": { ".validate": true },
+                "$other": { ".validate": false }
+              }
+            },
+
+            "$other": { ".validate": false }
+          }
+        },
+
         "$other": { ".validate": false }
       }
     }

@@ -1,0 +1,129 @@
+/* ════════════ SPIELE ════════════ */
+#games-view { max-width: 720px; }
+.games-title { font-size: 2.6rem; margin-bottom: 16px; text-align: center; }
+
+/* Einladungs-Streifen unter der Navigation */
+.game-invites {
+    position: sticky;
+    top: calc(52px + env(safe-area-inset-top));
+    z-index: 40;
+    display: grid;
+    gap: 1px;
+    background: var(--line);
+}
+.invite {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: #3a2a10;
+    font-size: .9rem;
+    animation: slide-in .35s var(--ease-out);
+}
+.invite span { flex: 1; min-width: 0; }
+.invite .btn { padding: 8px 14px; font-size: .95rem; }
+.invite-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+}
+body.beamer .game-invites { display: none; }
+
+/* Übersicht */
+.games-busy { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+#new-game-btn { margin: 0 0 12px; }
+.game-chooser { display: grid; gap: 8px; margin-bottom: 16px; }
+.game-choice {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--mid);
+    border: 1px solid var(--gold);
+    border-radius: var(--radius);
+    animation: pop-in .3s var(--ease-pop);
+}
+.game-choice-icon { font-size: 2rem; }
+.game-choice-text { flex: 1; min-width: 0; }
+.game-choice-name { font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 1.5px; }
+.game-choice-name small { font-family: var(--font-body); font-size: .75rem; color: var(--muted); letter-spacing: 0; }
+
+.game-rows { display: grid; gap: 8px; }
+.game-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--dark);
+    border-radius: var(--radius-s);
+}
+.game-row-icon { font-size: 1.6rem; }
+.game-row-text { flex: 1; min-width: 0; }
+.game-row .btn { padding: 8px 14px; font-size: .95rem; }
+
+/* Spielraum */
+.room-header { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.room-header .btn-link { padding-left: 0; }
+.room-title {
+    flex: 1;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 1.8rem;
+    letter-spacing: 2px;
+    color: var(--amber);
+    text-align: center;
+}
+.room-header .btn-ghost { padding: 8px 12px; font-size: .9rem; }
+.lobby-players { list-style: none; display: grid; gap: 6px; margin-bottom: 14px; }
+.lobby-players li { padding: 8px 12px; background: var(--dark); border-radius: var(--radius-s); animation: pop-in .3s var(--ease-pop); }
+
+.room-drinks { list-style: none; display: grid; gap: 6px; }
+.room-drinks li { padding: 8px 12px; background: var(--dark); border-radius: var(--radius-s); animation: slide-in .35s var(--ease-out); }
+.room-drinks li.is-me { box-shadow: inset 3px 0 0 var(--amber); }
+
+.room-phone { text-align: center; border-color: var(--gold); }
+.room-end { display: flex; justify-content: center; gap: 10px; margin-top: 8px; }
+
+/* Würfel */
+.die { width: 64px; height: 64px; }
+.die rect { fill: var(--foam); stroke: var(--gold); stroke-width: 3; }
+.die circle { fill: var(--dark); }
+.die text { fill: var(--muted); font: 700 44px var(--font-body); }
+.die-empty rect { fill: var(--dark); stroke: var(--line); stroke-dasharray: 8 6; }
+.die-fresh { animation: die-roll .7s var(--ease-pop); }
+@keyframes die-roll {
+    0%   { transform: rotate(-200deg) scale(.4); opacity: 0; }
+    70%  { transform: rotate(15deg) scale(1.1); opacity: 1; }
+    100% { transform: none; }
+}
+
+/* Würfelduell */
+.duel-head { text-align: center; margin-bottom: 14px; font-size: 1.05rem; }
+.duel-head b { color: var(--amber); }
+.duel-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+.duel-player { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; border-radius: var(--radius); transition: background .3s; }
+.duel-player.is-turn { background: rgba(245, 166, 35, .12); box-shadow: 0 0 0 2px var(--amber); }
+.duel-player.is-loser .die rect { stroke: var(--red); stroke-width: 6; }
+.duel-name { font-family: var(--font-display); letter-spacing: 1.5px; font-size: 1.1rem; }
+.duel-history { margin-top: 14px; font-size: .8rem; color: var(--muted); text-align: center; }
+
+.phone-die .die { width: 110px; height: 110px; }
+.phone-text { margin: 8px 0 12px; font-size: 1.05rem; }
+.btn-roll { font-size: 1.8rem; padding: 16px 40px; border-radius: 16px; }
+.btn-roll:disabled { opacity: .5; }
+
+/* Beamer: nur Spielfeld und Trink-Liste, groß */
+body.beamer #games-view { max-width: none; }
+body.beamer #room-phone,
+body.beamer #room-end,
+body.beamer #room-back { display: none; }
+body.beamer .room-title { font-size: 3.4rem; }
+body.beamer .duel-head { font-size: 2rem; }
+body.beamer .die { width: 120px; height: 120px; }
+body.beamer .duel-name { font-size: 1.8rem; }
+body.beamer .room-drinks li { font-size: 1.4rem; }
+body.beamer [data-beamer-btn] { opacity: .25; }

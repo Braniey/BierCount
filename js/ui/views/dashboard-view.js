@@ -1,37 +1,12 @@
 import { $, esc, formatAgo, formatClock, formatTimer, formatDuration, formatNumber } from '../dom.js';
 import { createGlass } from '../glass.js';
+import { toggleBeamer } from '../beamer.js';
 import { EVENT, PAUSE, DRINKS, BEERS_PER_CRATE, CRATE_NAME } from '../../core/constants.js';
 
 const cards = new Map(); // name -> { el, glass }
-let wakeLock = null;
 
 export function initDashboardView() {
     $('#beamer-btn').addEventListener('click', toggleBeamer);
-    document.addEventListener('fullscreenchange', () => {
-        if (!document.fullscreenElement) setBeamer(false);
-    });
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && document.body.classList.contains('beamer')) setBeamer(false);
-    });
-}
-
-function toggleBeamer() {
-    setBeamer(!document.body.classList.contains('beamer'));
-}
-
-async function setBeamer(on) {
-    document.body.classList.toggle('beamer', on);
-    $('#beamer-btn').textContent = on ? '✕ Beamer aus' : '📺 Beamer-Modus';
-    try {
-        if (on) {
-            await document.documentElement.requestFullscreen?.();
-            wakeLock = await navigator.wakeLock?.request('screen');
-        } else {
-            if (document.fullscreenElement) await document.exitFullscreen();
-            await wakeLock?.release();
-            wakeLock = null;
-        }
-    } catch { /* Fullscreen/WakeLock nicht erlaubt – Beamer-Layout geht trotzdem */ }
 }
 
 export function renderDashboardView(state, stats) {

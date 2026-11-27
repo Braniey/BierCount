@@ -1,6 +1,6 @@
 # 🍺 Bier Counter
 
-Live-Zähler für die Leiterrunde: Getränke, Kippen, Klo- und Raucherpausen zählen, mit Dashboard, Statistiken, Meilensteinen und Beamer-Modus.
+Live-Zähler für die Leiterrunde: Getränke, Kippen, Klo- und Raucherpausen zählen, mit Dashboard, Statistiken, Meilensteinen, Beamer-Modus und Trinkspielen direkt in der Runde.
 Läuft komplett statisch auf GitHub Pages, die Daten liegen in der Firebase Realtime Database.
 
 ## Features
@@ -43,6 +43,24 @@ Beim Bier-Abend gibt es zusätzlich den **Fässchen-Fortschritt** (25 Bier) mit 
 - **Legende**: erklärt alle Abzeichen und Titel (Antippen eines Abzeichens genügt)
 - **Einladen per Link** (`?s=SESSIONID`) und auf den Homescreen legen (PWA)
 
+### Spiele
+
+Während einer Runde kann jeder im Reiter **🎲 Spiele** ein Minispiel starten – auch mehrere gleichzeitig, z. B. an verschiedenen Tischenden. Würfel und Karten braucht man nicht mehr.
+
+1. **Spiel starten:** „+ Neues Spiel“ → Spiel auswählen. Wer startet, ist der **Host**.
+2. **Beitreten:** Alle anderen sehen oben einen Hinweis „Kai startet Würfelduell – Mitspielen“ (oder treten im Spiele-Reiter bei). Bis zum Start kann man wieder austreten.
+3. **Runde starten:** Der Host startet, sobald genug Leute dabei sind. Wer beigetreten ist, landet automatisch im Spiel.
+4. **Spielen:** Auf dem eigenen Handy sieht man seine Würfel/Karten und würfelt oder wählt nur – eingetragen wird nichts.
+5. **Trinken:** Muss jemand trinken, erscheint es groß auf seinem Handy („🍺 Du trinkst 2 Schlücke“) und im Spielfeld für alle.
+6. **Zuschauen / Beamer:** Laufende Spiele kann jeder öffnen; mit „📺 Beamer-Modus“ zeigt der Laptop das Spielfeld groß.
+7. **Am Ende:** Der Host kann direkt eine **Revanche** starten.
+
+Jeder ist in höchstens einem Spiel gleichzeitig. Nicht gestartete Lobbys verschwinden nach 30 Minuten, verlassene Spiele nach 2 Stunden ohne Zug. Ergebnisse werden nicht gespeichert.
+
+| Spiel | Spieler | Regeln |
+|---|---|---|
+| 🎲 Würfelduell | 2–10 | Reihum würfelt jeder einmal, der Niedrigste trinkt 1 Schluck. Gleichstand ganz unten → Stechen, jede Stechrunde +1 Schluck. |
+
 ## Projektstruktur
 
 ```
@@ -70,6 +88,16 @@ js/
   ui/effects.js             Konfetti, Overlay, Vibration
   ui/charts.js              Rennen-Diagramm
   ui/legend.js              Legende der Abzeichen und Titel
+  ui/beamer.js              Beamer-Modus (Dashboard und Spiele)
+  ui/drink-alert.js         „Du trinkst …“-Anzeige aus Spielen
+  ui/game-invites.js        Einladungs-Hinweis unter der Navigation
+  core/games.js             Übersicht offener/laufender Spiele (reine Logik)
+  services/game-service.js  Datenbank-Zugriffe für Spiele
+  games/engine.js           Spiel-Register; berechnet den Spielstand aus den Zügen
+  games/random.js           Würfel und reproduzierbarer Zufall (Mischen)
+  games/dice.js             SVG-Würfel
+  games/duel.js             Würfelduell (Logik + Anzeige)
+css/games.css               Styles für Spiele
   ui/toast.js               Kurze Hinweise
   ui/views/*.js             Setup, Zähler, Dashboard, Statistik
 ```
@@ -96,7 +124,18 @@ sessions/{SESSIONID}
     { type: "drink", drink: "beer", player, ts }
     { type: "cig", player, ts }
     { type: "toilet" | "smoke", player, ts, end }   abgeschlossene Pausen
+  games/{gameId}
+    type       "duel", …
+    host       Spielername des Hosts
+    status     "lobby" | "running" | "finished" | "aborted"
+    players    { Name: { joinedAt } }               Lobby
+    order      { Name: Position }                   Spielreihenfolge ab dem Start
+    seed       Zufallszahl für Mischen o. Ä.
+    moves/{pushId}
+      { player, type, data, ts }                    Zug-Protokoll
 ```
+
+**Spiele** speichern nur ihre Züge. Jedes Gerät berechnet daraus selbst den Spielstand, wer dran ist und wer trinken muss. So hängt ein Spiel nie davon ab, dass ein bestimmtes Handy (z. B. das des Hosts) wach ist. Ein neues Spiel ist eine Datei in `js/games/` mit `init`, `apply`, `createMove`, `renderTable` und `renderPhone` und wird in `js/games/engine.js` eingetragen.
 
 Zähler und Event werden immer zusammen in einem atomaren Update geschrieben (`increment`), damit gleichzeitige Klicks nichts verschlucken.
 Die `config` wird beim Erstellen geschrieben und danach nicht mehr geändert.
@@ -110,7 +149,10 @@ Jedes Handy meldet sich beim Öffnen unsichtbar bei Firebase an (anonyme Anmeldu
 - jeder nur **seinen eigenen** Namen zählen, pausieren und zurücknehmen kann,
 - Session-Name und Getränke nach dem Erstellen fest sind und niemand eine Session löschen kann,
 - nur gültige Werte gespeichert werden (Zahlen, bekannte Ereignisse, Namen bis 20 Zeichen),
-- nur der **Ersteller** einen Namen wieder freigeben kann (z. B. wenn jemand das Handy wechselt).
+- nur der **Ersteller** einen Namen wieder freigeben kann (z. B. wenn jemand das Handy wechselt),
+- bei Spielen nur der Host startet oder abbricht, jeder sich nur selbst ein- und austrägt und nur eigene Züge schreibt (Züge lassen sich nicht ändern oder löschen).
+
+Wenn sich `database.rules.json` ändert, muss der neue Inhalt in Firebase → Realtime Database → **Regeln** eingefügt werden.
 
 ## Setup
 
