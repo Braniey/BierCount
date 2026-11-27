@@ -65,12 +65,23 @@ function handleGames(state, games) {
         .map(([id, g]) => ({ id, raw: g, state: computeGame(g).state }));
     watchDrinks(computed, state.player);
 
-    // Mein Spiel ist vorbei → Status setzen (jedes Mitspieler-Gerät darf das)
+    // Mein Spiel ist vorbei → Status setzen. Das macht das Gerät mit dem
+    // letzten Zug; die anderen springen nur ein, falls es nach 10 s nicht
+    // passiert ist (sonst würden alle gleichzeitig schreiben)
     const mine = games.mine;
     const mineComputed = mine && computed.find(c => c.id === mine.id);
     if (mineComputed?.state?.finished && mine.status === 'running' && !finishing.has(mine.id)) {
         finishing.add(mine.id);
-        gameService.finishGame(state.session.id, mine.id, state.player).catch(console.error);
+        const { id: sid } = state.session;
+        const lastMover = Object.values(mine.moves || {}).sort((a, b) => b.ts - a.ts)[0]?.player;
+        const finish = () => gameService.finishGame(sid, mine.id, state.player);
+        if (lastMover === state.player) {
+            finish().catch(console.error);
+        } else {
+            setTimeout(() => {
+                if (getState().data?.games?.[mine.id]?.status === 'running') finish().catch(() => {});
+            }, 10_000);
+        }
     }
 
     // Mein Spiel wurde gestartet → Spielraum öffnen
