@@ -2,6 +2,13 @@
 // Gleichstand ganz unten → die Betroffenen stechen, jede Stechrunde +1 Schluck.
 
 import { rollDice } from './random.js';
+import { dieSvg } from './dice.js';
+
+const esc = s => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+
+// Welche Würfe schon angezeigt wurden, damit nur neue animiert werden
+let shown = '';
+const rollKey = state => `${state.round}:${JSON.stringify(state.rolls)}`;
 
 export const duel = {
     id: 'duel',
@@ -65,5 +72,60 @@ export const duel = {
 
     createMove(type) {
         return type === 'roll' ? { value: rollDice(1)[0] } : null;
+    },
+
+    // Spielfeld für alle (auch Beamer): Würfe der aktuellen Runde
+    renderTable(el, state) {
+        const key = rollKey(state);
+        const before = shown.startsWith(`${state.round}:`) ? JSON.parse(shown.slice(shown.indexOf(':') + 1)) : {};
+        shown = key;
+
+        const last = state.history.at(-1);
+        // Nach dem Ende die Würfe der letzten Runde zeigen
+        const rolls = state.finished ? last.rolls : state.rolls;
+        const players = state.finished ? Object.keys(last.rolls) : state.contenders;
+        const loser = state.finished ? state.drinks.at(-1)?.player : null;
+
+        const head = state.finished
+            ? `<b>${esc(loser)}</b> trinkt ${state.stake} ${state.stake === 1 ? 'Schluck' : 'Schlücke'}`
+            : state.round === 1
+                ? `<b>${esc(state.turn)}</b> ist dran`
+                : `Stechen! Runde ${state.round} · Einsatz ${state.stake} Schlücke · <b>${esc(state.turn)}</b> ist dran`;
+
+        el.innerHTML = `
+          <div class="duel-head">${head}</div>
+          <div class="duel-grid">
+            ${players.map(p => `
+              <div class="duel-player ${p === state.turn ? 'is-turn' : ''} ${p === loser ? 'is-loser' : ''}">
+                ${dieSvg(rolls[p] ?? null, { fresh: rolls[p] != null && before[p] == null })}
+                <div class="duel-name">${esc(p)}</div>
+              </div>`).join('')}
+          </div>
+          ${state.history.length > (state.finished ? 1 : 0) ? `
+            <div class="duel-history">
+              ${state.history.slice(0, state.finished ? -1 : undefined).map(h => `
+                <div>Runde ${h.round}: ${Object.entries(h.rolls).map(([p, v]) => `${esc(p)} ${v}`).join(' · ')}</div>`).join('')}
+            </div>` : ''}`;
+    },
+
+    // Eigener Bereich auf dem Handy: Würfeln, wenn ich dran bin
+    renderPhone(el, state, me, makeMove) {
+        const mine = state.rolls[me] ?? (state.finished ? state.history.at(-1).rolls[me] : null);
+        const inRound = state.contenders.includes(me);
+        let text;
+        if (state.finished) text = state.drinks.at(-1)?.player === me ? 'Verloren – Prost!' : 'Glück gehabt!';
+        else if (state.turn === me) text = state.round === 1 ? 'Du bist dran!' : 'Du musst stechen!';
+        else if (!inRound) text = 'Du bist sicher – die anderen stechen.';
+        else if (mine != null) text = `Warte auf ${esc(state.turn)} …`;
+        else text = `${esc(state.turn)} ist dran …`;
+
+        el.innerHTML = `
+          <div class="phone-die">${dieSvg(inRound || state.finished ? mine : null)}</div>
+          <div class="phone-text">${text}</div>
+          ${state.turn === me ? '<button class="btn btn-primary btn-roll" data-move="roll">🎲 Würfeln</button>' : ''}`;
+        el.querySelector('[data-move]')?.addEventListener('click', e => {
+            e.currentTarget.disabled = true;
+            makeMove('roll');
+        });
     },
 };

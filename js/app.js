@@ -2,6 +2,7 @@
 
 import { isConfigured } from './config/firebase-config.js';
 import * as service from './services/session-service.js';
+import * as gameService from './services/game-service.js';
 import { signIn } from './services/firebase.js';
 import { getState, setState, subscribe, restoreState, events, me } from './core/store.js';
 import { computeStats } from './core/stats.js';
@@ -16,12 +17,18 @@ import { initCounterView, renderCounterView } from './ui/views/counter-view.js';
 import { initDashboardView, renderDashboardView } from './ui/views/dashboard-view.js';
 import { initStatsView, renderStatsView } from './ui/views/stats-view.js';
 import { initLegend } from './ui/legend.js';
+import { listGames } from './core/games.js';
+import { computeGame } from './games/engine.js';
+import { watchDrinks } from './ui/drink-alert.js';
+import { initGameInvites, renderGameInvites } from './ui/game-invites.js';
+import { initGamesView, renderGamesView, openRoom, closeRoom, currentRoom } from './ui/views/games-view.js';
 
 const VIEWS = {
     setup:     renderSetupView,
     counter:   renderCounterView,
     dashboard: renderDashboardView,
     stats:     renderStatsView,
+    games:     (state, stats, games) => renderGamesView(state, games, type => actions.makeMove(currentRoom(), type)),
 };
 
 let activeTab = 'setup';
@@ -39,7 +46,43 @@ function switchTab(tab) {
 
 function render() {
     const state = getState();
-    VIEWS[activeTab](state, computeStats(state.data));
+    const games = listGames(state.data, state.player);
+    if (handleGames(state, games)) return; // hat selbst neu gerendert
+    VIEWS[activeTab](state, computeStats(state.data), games);
+}
+
+// ── Spiele: Einladungen, Trink-Anzeige, automatisch öffnen/beenden ─
+const autoOpened = new Set();
+const finishing = new Set();
+
+function handleGames(state, games) {
+    renderGameInvites(state.player ? games.invites : []);
+    if (!state.data || !state.player) return false;
+
+    // Trink-Meldungen aller laufenden und beendeten Spiele
+    const computed = Object.entries(state.data.games || {})
+        .filter(([, g]) => g.status === 'running' || g.status === 'finished')
+        .map(([id, g]) => ({ id, raw: g, state: computeGame(g).state }));
+    watchDrinks(computed, state.player);
+
+    // Mein Spiel ist vorbei → Status setzen (jedes Mitspieler-Gerät darf das)
+    const mine = games.mine;
+    const mineComputed = mine && computed.find(c => c.id === mine.id);
+    if (mineComputed?.state?.finished && mine.status === 'running' && !finishing.has(mine.id)) {
+        finishing.add(mine.id);
+        gameService.finishGame(state.session.id, mine.id, state.player).catch(console.error);
+    }
+
+    // Mein Spiel wurde gestartet → Spielraum öffnen
+    if (mine?.status === 'running' && !autoOpened.has(mine.id)) {
+        autoOpened.add(mine.id);
+        openRoom(mine.id);
+        if (activeTab !== 'games') {
+            switchTab('games');
+            return true;
+        }
+    }
+    return false;
 }
 
 // ── Session-Verbindung ───────────────────────────────────────────
@@ -259,7 +302,74 @@ const actions = {
     }),
 
     goToSetup: () => switchTab('setup'),
+
+    // ── Spiele ──
+    newGame: safe(async type => {
+        const ctx = requirePlayer();
+        if (!ctx) return;
+        if (myGames().mine) return showToast('Du bist schon in einem Spiel');
+        const gid = await gameService.createGame(ctx.id, type, ctx.player);
+        openRoom(gid);
+        switchTab('games');
+    }),
+
+    joinGame: safe(async gid => {
+        const ctx = requirePlayer();
+        if (!ctx) return;
+        const { mine } = myGames();
+        if (mine && mine.id !== gid) return showToast('Du bist schon in einem Spiel');
+        if (!mine) await gameService.joinGame(ctx.id, gid, ctx.player);
+        openRoom(gid);
+        switchTab('games');
+    }),
+
+    leaveGame: safe(async gid => {
+        const ctx = requirePlayer();
+        if (!ctx) return;
+        await gameService.leaveGame(ctx.id, gid, ctx.player);
+        closeRoom();
+        render();
+    }),
+
+    startGame: safe(async gid => {
+        const ctx = requirePlayer();
+        if (!ctx) return;
+        const game = myGames().open.find(g => g.id === gid);
+        if (!game) return showToast('Lobby nicht mehr offen');
+        await gameService.startGame(ctx.id, gid, game.players);
+    }),
+
+    abortGame: safe(async gid => {
+        const ctx = requirePlayer();
+        if (ctx) await gameService.abortGame(ctx.id, gid);
+    }),
+
+    openGame(gid) {
+        openRoom(gid);
+        switchTab('games');
+    },
+
+    closeGame() {
+        closeRoom();
+        render();
+    },
+
+    makeMove: safe(async (gid, type) => {
+        const ctx = requirePlayer();
+        if (!ctx || !gid) return;
+        const raw = getState().data?.games?.[gid];
+        const { def, state } = computeGame(raw);
+        if (!state || state.turn !== ctx.player) return;
+        await gameService.addMove(ctx.id, gid, ctx.player, type, def.createMove(type, state, ctx.player));
+    }),
+
+    rematch: safe(async gid => {
+        const type = getState().data?.games?.[gid]?.type;
+        if (type) await actions.newGame(type);
+    }),
 };
+
+const myGames = () => listGames(getState().data, getState().player);
 
 // ── Start ────────────────────────────────────────────────────────
 async function init() {
@@ -268,12 +378,16 @@ async function init() {
     $$('nav [data-tab]').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
     $('#dash-setup-btn').addEventListener('click', actions.goToSetup);
     $('#stats-setup-btn').addEventListener('click', actions.goToSetup);
+    $('#games-setup-btn').addEventListener('click', actions.goToSetup);
 
     initSetupView(actions);
     initCounterView(actions);
     initDashboardView();
     initStatsView();
     initLegend(() => computeStats(getState().data).main);
+    initGamesView(actions);
+    initGameInvites(actions);
+    document.addEventListener('games-changed', render);
 
     subscribe(render);
     document.addEventListener('goal-changed', render);
