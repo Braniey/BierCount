@@ -3,8 +3,9 @@
 // Datenmodell:
 // sessions/{id}
 //   name, createdAt
+//   owner: uid des Erstellers
 //   config: { mode: 'single' | 'mixed', drinks: [id, …], beerSize? }
-//   players/{name}: { drinks: { [id]: n }, cigs, joinedAt, status: { type, since } | null }
+//   players/{name}: { uid, drinks: { [id]: n }, cigs, joinedAt, status: { type, since } | null }
 //   events/{pushId}: { type, drink?, player, ts, end? }
 //
 // Die Zähler sind Summen für die schnelle Anzeige, die Events liefern
@@ -26,12 +27,12 @@ const sessionRef = id => ref(db, `sessions/${id}`);
 const newEventKey = id => push(ref(db, `sessions/${id}/events`)).key;
 
 // config: { mode, drinks, beerSize } – wird nur hier geschrieben, nie geändert
-export async function createSession(name, { mode, drinks, beerSize }) {
+export async function createSession(name, { mode, drinks, beerSize }, owner) {
     let id = genId();
     while ((await get(sessionRef(id))).exists()) id = genId();
     const config = { mode, drinks };
     if (drinks.includes('beer')) config.beerSize = beerSize;
-    await set(sessionRef(id), { name, createdAt: Date.now(), config });
+    await set(sessionRef(id), { name, createdAt: Date.now(), owner, config });
     return id;
 }
 
@@ -40,12 +41,26 @@ export async function fetchSession(id) {
     return snap.exists() ? snap.val() : null;
 }
 
-export async function joinSession(id, player) {
+// Namen für dieses Handy beanspruchen.
+// Ergebnis: 'joined' (neu), 'claimed' (war frei), 'own' (gehört schon uns),
+// 'taken' (gehört einem anderen Handy – nur der Ersteller kann freigeben)
+export async function joinSession(id, player, uid) {
     const playerRef = ref(db, `sessions/${id}/players/${player}`);
     const snap = await get(playerRef);
     if (!snap.exists()) {
-        await set(playerRef, { cigs: 0, joinedAt: Date.now() });
+        await set(playerRef, { cigs: 0, joinedAt: Date.now(), uid });
+        return 'joined';
     }
+    const owner = snap.val().uid;
+    if (owner === uid) return 'own';
+    if (owner) return 'taken';
+    await set(ref(db, `sessions/${id}/players/${player}/uid`), uid);
+    return 'claimed';
+}
+
+// Nur für den Ersteller: Namen wieder freigeben, z. B. bei Handywechsel
+export function releasePlayer(id, player) {
+    return set(ref(db, `sessions/${id}/players/${player}/uid`), null);
 }
 
 export function subscribeSession(id, callback) {

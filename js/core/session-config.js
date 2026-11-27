@@ -23,6 +23,7 @@ export function readSession(data) {
             cigs: p.cigs || 0,
             joinedAt: p.joinedAt || 0,
             status: p.status || null,
+            uid: p.uid || null,
         }]),
     );
 
@@ -32,7 +33,7 @@ export function readSession(data) {
             : { key, ...e })
         .sort((a, b) => a.ts - b.ts);
 
-    return { mode: config.mode, drinks, players, events };
+    return { mode: config.mode, drinks, players, events, owner: data?.owner || null };
 }
 
 // Alter Zählerstand `count` plus alles, was seit der Umstellung unter
