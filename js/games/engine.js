@@ -14,10 +14,19 @@ import { duel } from './duel.js';
 export const GAMES = { [duel.id]: duel };
 export const GAME_ORDER = [duel.id];
 
+// Reihenfolge ist in der Datenbank eine Map { Name: Position }, weil die
+// Regeln nur so prüfen können, ob jemand mitspielt
+export function orderOf(game) {
+    const order = game?.order;
+    if (!order) return [];
+    if (Array.isArray(order)) return order;
+    return Object.entries(order).sort(([, a], [, b]) => a - b).map(([name]) => name);
+}
+
 export function computeGame(game) {
     const def = GAMES[game?.type] || null;
-    const order = game?.order || [];
-    if (!def || !game.order || game.status === 'lobby') return { def, state: null, order };
+    const order = orderOf(game);
+    if (!def || !order.length || game.status === 'lobby') return { def, state: null, order };
 
     const moves = Object.entries(game.moves || {})
         .map(([key, m]) => ({ key, ...m }))
